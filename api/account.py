@@ -1,33 +1,18 @@
-from fastapi import APIRouter, Depends, Body
+from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
-from sqlalchemy import text
-from core.connDB import connDB  # chỉnh đường dẫn nếu cần
-from passlib.context import CryptContext
+from core.connDB import connDB
+from repositories.account_repo import AccountRepository
+from services.account_service import AccountService
+from schemas.account_schema import LoginRequest
 
-# Khởi tạo router
 account_router = APIRouter()
-db_conn = connDB()  # khởi tạo kết nối DB
-context_pwd = CryptContext(schemes=["bcrypt"], deprecated="auto")
-        
-@account_router.post("/login")
-def login(
-    user_name: str = Body(...),
-    password: str = Body(...),
-    db : Session = Depends(db_conn.get_db) # bắt buộc có key "password"
-):
-    if (not user_name or not password):
-        return None
-    
-    query_verify = text("SELECT * FROM account where userName = :user_name")
-    
-    result = db.execute(query_verify, {"user_name": user_name}).mappings().first()
-    if not result:
-        return {"message": "Invalid username or password"}
-
-    if (context_pwd.verify(password, result["password"])):
-        return result["id"]
-    return {"message": "Invalid username or password"}
+db_conn = connDB()
 
 @account_router.get("/")
-def testAcc():
+def test_acc():
     return "Account success"
+
+@account_router.post("/login")
+def login(request: LoginRequest, db: Session = Depends(db_conn.get_db)):
+    service = AccountService(AccountRepository(db))
+    return service.login(request.user_name, request.password)
