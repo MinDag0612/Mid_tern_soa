@@ -65,9 +65,9 @@ FOREIGN KEY (idTransaction) REFERENCES dbo.history(idTransaction);
 
 INSERT INTO dbo.account (userName, password)
 VALUES 
-    ('admin', 'admin123'),
-    ('student01', 'pass01'),
-    ('student02', 'pass02');
+    ('admin', '$2b$12$ByWI/aiBcz5.ojnuAKJ.ueuwT1MPL2X5vd5Klx5yDsRkk0.PoX1dS'),
+    ('student01', '$2b$12$J0/ryTNcS0btK0uRkTj0f.zASkMVRWRnxytSQ01BGBqoxz.M3aTDq'),
+    ('student02', '$2b$12$CQaG1mDCWWwMJ2bAS1gBBub8wA8G1ARqlMRy2oGcuWQzypI6JapBG');
 
 SET IDENTITY_INSERT CustomerInfor ON;
 INSERT INTO dbo.CustomerInfor (id, fullName, phoneNumber, email, balance)
@@ -87,5 +87,5 @@ INSERT INTO dbo.tuition (idTransaction, studentId, studentName, tuition)
 VALUES
     ('TXN001', 'ST001', 'Nguyen Van A', 1500000),
     ('TXN002', 'ST002', 'Tran Thi B',   2000000);
+ 
 
-select * from tuition
