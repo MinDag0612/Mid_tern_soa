@@ -1,5 +1,7 @@
 services:
   api:
+    volumes:
+      - .:/app
     build: .
     container_name: tuition_api
     env_file:
