@@ -3,7 +3,8 @@ FROM python:3.11-slim
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1 \
     APP_HOST=0.0.0.0 \
-    APP_PORT=8000
+    APP_PORT=8000 \
+    APP_RELOAD=
 
 WORKDIR /app
 
@@ -14,4 +15,4 @@ COPY . .
 
 EXPOSE 8000
 
-CMD ["sh", "-c", "uvicorn api.main:app --host ${APP_HOST:-0.0.0.0} --port ${APP_PORT:-8000}"]
+CMD uvicorn api.main:app --host ${APP_HOST:-0.0.0.0} --port ${APP_PORT:-8000} ${APP_RELOAD:+--reload}

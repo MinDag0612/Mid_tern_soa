@@ -14,6 +14,8 @@
 ├── repositories/       # Tầng truy vấn dữ liệu
 ├── schemas/            # Định nghĩa schema Pydantic
 ├── services/           # Xử lý nghiệp vụ
+├── alembic/            # Migration scripts (Alembic)
+├── alembic.ini         # Cấu hình Alembic
 ├── Dockerfile
 ├── docker-compose.yml
 ├── requirements.txt
@@ -31,6 +33,7 @@ cp .env.example .env
 Các biến quan trọng:
 
 - `APP_HOST`, `APP_PORT`: host/port mà Uvicorn lắng nghe.
+- `APP_RELOAD`: đặt `true` để Uvicorn auto reload (chỉ dùng môi trường dev).
 - `DB_HOST`, `DB_PORT`: địa chỉ và cổng MySQL (mặc định sử dụng service `mysql` trong Docker).
 - `DB_NAME`: tên database.
 - `DB_USER`, `DB_PASSWORD`: tài khoản ứng dụng để kết nối MySQL.
@@ -45,12 +48,17 @@ Các biến quan trọng:
    source .venv/bin/activate  # Windows: .venv\Scripts\activate
    pip install -r requirements.txt
    ```
-2. Đảm bảo MySQL đang chạy và các biến trong `.env` trỏ đúng tới database.
-3. Khởi chạy FastAPI:
+2. Đảm bảo MySQL đang chạy và các biến trong `.env` trỏ đúng tới database (đặt `APP_RELOAD=true` nếu muốn auto reload khi phát triển).
+3. Khởi tạo schema và dữ liệu mẫu bằng Alembic:
+   ```bash
+   alembic upgrade head
+   ```
+   Lệnh này sẽ tạo các bảng `account`, `CustomerInfor`, `tuition`, `history`, `payment_otp` và seed dữ liệu mẫu.
+4. Khởi chạy FastAPI:
    ```bash
    uvicorn api.main:app --host ${APP_HOST:-0.0.0.0} --port ${APP_PORT:-8000} --reload
    ```
-4. Truy cập `http://127.0.0.1:8000` để kiểm tra.
+5. Truy cập `http://127.0.0.1:8000` để kiểm tra.
 
 ## Triển khai với Docker Compose
 
@@ -59,8 +67,12 @@ Các biến quan trọng:
    ```bash
    docker compose up --build
    ```
-3. API sẽ lắng nghe tại `http://localhost:${APP_PORT}` và MySQL mở cổng 3306 cho máy chủ.
-4. Dừng dịch vụ khi không dùng:
+3. Chạy migration sau khi container MySQL sẵn sàng:
+   ```bash
+   docker compose exec api alembic upgrade head
+   ```
+4. API sẽ lắng nghe tại `http://localhost:${APP_PORT}` và MySQL mở cổng 3306 cho máy chủ.
+5. Dừng dịch vụ khi không dùng:
    ```bash
    docker compose down
    ```
@@ -82,14 +94,10 @@ Các biến quan trọng:
 
 ## Khởi tạo dữ liệu MySQL
 
-- Script `core/db.sql` đã chuyển sang cú pháp MySQL, tạo database `TuitionDB` và dữ liệu mẫu.
-- Nếu chạy MySQL ngoài Docker, import script bằng:
+- Script `core/db.sql` tương ứng với các migration hiện tại (phục vụ khi cần khởi tạo thủ công).
+- Nếu muốn refresh dữ liệu bằng script SQL thuần:
   ```bash
   mysql -u sa -p TuitionDB < core/db.sql
-  ```
-- Khi dùng Docker Compose, có thể chạy ngay trong container:
-  ```bash
-  docker compose exec mysql mysql -u sa -p TuitionDB < /app/core/db.sql
   ```
 
 > Lần đầu chạy Docker Compose có thể hơi lâu do MySQL khởi tạo dữ liệu. Hãy chờ healthcheck báo `healthy` trước khi gọi API.
