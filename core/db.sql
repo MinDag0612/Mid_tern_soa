@@ -1,91 +1,71 @@
-﻿-- 1. Tạo database
-IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = N'TuitionDB')
-BEGIN
-    CREATE DATABASE TuitionDB;
-END
-GO
+-- Schema và dữ liệu mẫu cho MySQL
+-- Sử dụng cùng cấu hình với docker-compose (database TuitionDB, user sa/12345)
+
+CREATE DATABASE IF NOT EXISTS TuitionDB
+  CHARACTER SET utf8mb4
+  COLLATE utf8mb4_unicode_ci;
 
 USE TuitionDB;
-GO
 
--- 2. Bảng account
-IF OBJECT_ID('dbo.account', 'U') IS NOT NULL DROP TABLE dbo.account;
-CREATE TABLE dbo.account (
-    id INT IDENTITY(1,1) PRIMARY KEY,
-    userName VARCHAR(50) NOT NULL,
-    password VARCHAR(50) NOT NULL
-);
+-- Xóa bảng cũ nếu tồn tại (đảm bảo thứ tự do ràng buộc khóa ngoại)
+DROP TABLE IF EXISTS tuition;
+DROP TABLE IF EXISTS history;
+DROP TABLE IF EXISTS CustomerInfor;
+DROP TABLE IF EXISTS account;
 
--- 3. Bảng CustomerInfor
-IF OBJECT_ID('dbo.CustomerInfor', 'U') IS NOT NULL DROP TABLE dbo.CustomerInfor;
-CREATE TABLE dbo.CustomerInfor (
-    id INT IDENTITY(1,1) PRIMARY KEY,
+-- Bảng account
+CREATE TABLE account (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    userName VARCHAR(50) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Bảng CustomerInfor (1-1 với account qua khóa chính)
+CREATE TABLE CustomerInfor (
+    id INT PRIMARY KEY,
     fullName VARCHAR(50) NOT NULL,
     phoneNumber VARCHAR(20) UNIQUE,
     email VARCHAR(50) UNIQUE,
-    balance FLOAT
-);
+    balance DECIMAL(15,2),
+    CONSTRAINT FK_CustomerInfor_Account FOREIGN KEY (id) REFERENCES account(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 4. Bảng history
-IF OBJECT_ID('dbo.history', 'U') IS NOT NULL DROP TABLE dbo.history;
-CREATE TABLE dbo.history (
-    id INT IDENTITY(1,1) PRIMARY KEY,
+-- Bảng history
+CREATE TABLE history (
+    id INT AUTO_INCREMENT PRIMARY KEY,
     idTransaction VARCHAR(20) UNIQUE,
     studentId VARCHAR(20),
-    tuition FLOAT,
+    tuition DECIMAL(15,2),
     dayComplete DATETIME,
     payer VARCHAR(50),
-    email VARCHAR(50) UNIQUE
-);
+    email VARCHAR(50),
+    CONSTRAINT FK_History_CustomerInfor FOREIGN KEY (email) REFERENCES CustomerInfor(email) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 5. Bảng tuition
-IF OBJECT_ID('dbo.tuition', 'U') IS NOT NULL DROP TABLE dbo.tuition;
-CREATE TABLE dbo.tuition (
+-- Bảng tuition
+CREATE TABLE tuition (
     idTransaction VARCHAR(20) PRIMARY KEY,
     studentId VARCHAR(20),
     studentName VARCHAR(50),
-    tuition FLOAT
-);
+    tuition DECIMAL(15,2),
+    CONSTRAINT FK_Tuition_History FOREIGN KEY (idTransaction) REFERENCES history(idTransaction) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- 6. Ràng buộc quan hệ (có thể điều chỉnh nếu bạn muốn liên kết chặt chẽ hơn)
--- account 1-1 CustomerInfor
-ALTER TABLE dbo.CustomerInfor
-ADD CONSTRAINT FK_CustomerInfor_Account
-FOREIGN KEY (id) REFERENCES dbo.account(id);
-
--- CustomerInfor 1-n history (qua email)
-ALTER TABLE dbo.history
-ADD CONSTRAINT FK_History_CustomerInfor
-FOREIGN KEY (email) REFERENCES dbo.CustomerInfor(email);
-
--- history 1-n tuition (qua idTransaction)
-ALTER TABLE dbo.tuition
-ADD CONSTRAINT FK_Tuition_History
-FOREIGN KEY (idTransaction) REFERENCES dbo.history(idTransaction);
-
-INSERT INTO dbo.account (userName, password)
-VALUES 
+-- Dữ liệu mẫu
+INSERT INTO account (userName, password) VALUES
     ('admin', '$2b$12$ByWI/aiBcz5.ojnuAKJ.ueuwT1MPL2X5vd5Klx5yDsRkk0.PoX1dS'),
     ('student01', '$2b$12$J0/ryTNcS0btK0uRkTj0f.zASkMVRWRnxytSQ01BGBqoxz.M3aTDq'),
     ('student02', '$2b$12$CQaG1mDCWWwMJ2bAS1gBBub8wA8G1ARqlMRy2oGcuWQzypI6JapBG');
 
-SET IDENTITY_INSERT CustomerInfor ON;
-INSERT INTO dbo.CustomerInfor (id, fullName, phoneNumber, email, balance)
-VALUES
+INSERT INTO CustomerInfor (id, fullName, phoneNumber, email, balance) VALUES
     (1, 'Nguyen Van A', '0901234567', 'a@example.com', 5000000),
     (2, 'Tran Thi B',   '0912345678', 'b@example.com', 3000000),
     (3, 'Le Van C',     '0923456789', 'c@example.com', 4500000);
-SET IDENTITY_INSERT CustomerInfor OFF;
 
+INSERT INTO history (idTransaction, studentId, tuition, dayComplete, payer, email) VALUES
+    ('TXN001', 'ST001', 1500000, NOW(), 'Nguyen Van A', 'a@example.com'),
+    ('TXN002', 'ST002', 2000000, NOW(), 'Tran Thi B',   'b@example.com');
 
-INSERT INTO dbo.history (idTransaction, studentId, tuition, dayComplete, payer, email)
-VALUES
-    ('TXN001', 'ST001', 1500000, GETDATE(), 'Nguyen Van A', 'a@example.com'),
-    ('TXN002', 'ST002', 2000000, GETDATE(), 'Tran Thi B',   'b@example.com');
-
-INSERT INTO dbo.tuition (idTransaction, studentId, studentName, tuition)
-VALUES
+INSERT INTO tuition (idTransaction, studentId, studentName, tuition) VALUES
     ('TXN001', 'ST001', 'Nguyen Van A', 1500000),
     ('TXN002', 'ST002', 'Tran Thi B',   2000000);
- 
-
