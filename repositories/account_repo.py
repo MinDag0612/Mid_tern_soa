@@ -16,3 +16,21 @@ class AccountRepository:
         return self.db.execute(
             query, {"customer_id": customer_id}
         ).mappings().first()
+
+    def get_customer_with_balance(self, customer_id: int):
+        query = text(
+            "SELECT id, fullName, email, balance FROM CustomerInfor WHERE id = :customer_id"
+        )
+        return self.db.execute(query, {"customer_id": customer_id}).mappings().first()
+
+    def lock_customer_for_update(self, customer_id: int):
+        query = text(
+            "SELECT id, fullName, email, balance FROM CustomerInfor WHERE id = :customer_id FOR UPDATE"
+        )
+        return self.db.execute(query, {"customer_id": customer_id}).mappings().first()
+
+    def update_customer_balance(self, customer_id: int, balance):
+        query = text(
+            "UPDATE CustomerInfor SET balance = :balance WHERE id = :customer_id"
+        )
+        self.db.execute(query, {"balance": balance, "customer_id": customer_id})
