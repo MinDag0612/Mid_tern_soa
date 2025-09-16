@@ -65,6 +65,21 @@ Các biến quan trọng:
    docker compose down
    ```
 
+### Chạy nền (detached) và xem log
+
+- Chạy dịch vụ ở chế độ nền:
+  ```bash
+  docker compose up --build -d
+  ```
+- Xem log của API:
+  ```bash
+  docker compose logs -f api
+  ```
+- Tắt toàn bộ stack khi hoàn tất:
+  ```bash
+  docker compose down
+  ```
+
 ## Khởi tạo dữ liệu MySQL
 
 - Script `core/db.sql` đã chuyển sang cú pháp MySQL, tạo database `TuitionDB` và dữ liệu mẫu.
