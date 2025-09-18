@@ -1,11 +1,24 @@
 from fastapi import FastAPI
-from core.connDB import connDB
+from fastapi.middleware.cors import CORSMiddleware
+
 from api.account import account_router
-from api.tuition import tuition_router
 from api.otp import otp_router
 from api.payment import payment_router
+from api.tuition import tuition_router
 
 app = FastAPI()
+
+frontend_origins = [
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=frontend_origins,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.include_router(account_router, prefix="/accounts", tags=["account"])
 app.include_router(tuition_router, prefix="/tuition", tags=["tuition"])

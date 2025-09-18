@@ -14,6 +14,17 @@ services:
     environment:
       APP_RELOAD: "true"
 
+  frontend:
+    build: .
+    container_name: tuition_frontend
+    depends_on:
+      - api
+    volumes:
+      - .:/app
+    command: uvicorn frontend.app:app --host 0.0.0.0 --port 3000 --reload
+    ports:
+      - "3000:3000"
+
   mysql:
     image: mysql:8.0
     container_name: tuition_mysql

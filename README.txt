@@ -101,3 +101,17 @@ Các biến quan trọng:
   ```
 
 > Lần đầu chạy Docker Compose có thể hơi lâu do MySQL khởi tạo dữ liệu. Hãy chờ healthcheck báo `healthy` trước khi gọi API.
+
+## Form đăng nhập demo
+
+- API chạy tại `http://localhost:${APP_PORT:-8000}` với endpoint `POST /accounts/login`.
+- Front-end thuần HTML/CSS nằm trong `frontend/static` với cấu trúc:
+  - `pages/`: chứa `login.html`, `home.html`.
+  - `styles/`: CSS dùng chung (`base.css`).
+  - `scripts/`: logic xử lý form (`login.js`).
+- Chạy front-end local:
+  ```bash
+  uvicorn frontend.app:app --host 0.0.0.0 --port 3000 --reload
+  ```
+- Hoặc sử dụng Docker Compose (service `frontend`) rồi truy cập `http://localhost:3000`.
+- Form gọi API đăng nhập; đăng nhập thành công tự chuyển đến trang `home` (đang để trống để phát triển tiếp), còn lỗi sẽ hiển thị thông báo trên form.
