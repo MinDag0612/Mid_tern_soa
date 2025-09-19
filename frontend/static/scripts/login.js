@@ -34,7 +34,12 @@ form.addEventListener('submit', async (event) => {
       body: JSON.stringify(payload),
     });
 
-    const data = await response.json();
+     // do login trả về json với 2 trường: infor như cũ và accesstoken phục vụ bảo mật nên đổi tên biến một cchuts và thêm biến accesstoken
+    const result = await response.json();
+    const data = result.user_infor;
+    localStorage.setItem('access_token', result.access_token);
+
+    const token = localStorage.getItem('access_token');
 
     if (!response.ok || data?.message) {
       showMessage(data.message ?? 'Đăng nhập thất bại', 'error');

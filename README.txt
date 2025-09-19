@@ -115,3 +115,20 @@ Các biến quan trọng:
   ```
 - Hoặc sử dụng Docker Compose (service `frontend`) rồi truy cập `http://localhost:3000`.
 - Form gọi API đăng nhập; đăng nhập thành công tự chuyển đến trang `home` (đang để trống để phát triển tiếp), còn lỗi sẽ hiển thị thông báo trên form.
+
+# Security (JWT)
+
+- Khi Login thành công sẽ trả về 1 access token kèm theo infor (đã tạo biến gán vào trong login)
+- khi requirements tới các router khác ngoài account kèm theo header authen đã lưu (lưu ở client)
+- Hiện tại token sống mãi, chưa đặt thời gian hủy
+- header:
+mẫu
+```
+const response = await fetch(`${API_BASE_URL}/tuition`, {
+  method: "GET", // hoặc POST tùy endpoint
+  headers: {
+    "Content-Type": "application/json",
+    "Authorization": `Bearer ${token}`  // <-- gắn token vào đây
+  }
+});
+```

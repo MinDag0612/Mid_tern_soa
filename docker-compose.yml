@@ -13,6 +13,7 @@ services:
       - "${APP_PORT:-8000}:8000"
     environment:
       APP_RELOAD: "true"
+    command: uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
 
   frontend:
     build: .
@@ -40,6 +41,7 @@ services:
       - "3306:3306"
     volumes:
       - mysql_data:/var/lib/mysql
+      - ./core/db.sql:/docker-entrypoint-initdb.d/db.sql
     command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]

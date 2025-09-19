@@ -13,7 +13,7 @@ db_conn = connDB()
 def _get_tuition_service(db: Session) -> TuitionService:
     return TuitionService(tuitionRepository(db))
 
-
+    
 @tuition_router.get("/")
 def test_acc():
     return "Tuition success"
