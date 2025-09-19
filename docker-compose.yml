@@ -1,0 +1,53 @@
+services:
+  api:
+    volumes:
+      - .:/app
+    build: .
+    container_name: tuition_api
+    env_file:
+      - .env
+    depends_on:
+      mysql:
+        condition: service_healthy
+    ports:
+      - "${APP_PORT:-8000}:8000"
+    environment:
+      APP_RELOAD: "true"
+    command: uvicorn api.main:app --host 0.0.0.0 --port 8000 --reload
+
+  frontend:
+    build: .
+    container_name: tuition_frontend
+    depends_on:
+      - api
+    volumes:
+      - .:/app
+    command: uvicorn frontend.app:app --host 0.0.0.0 --port 3000 --reload
+    ports:
+      - "3000:3000"
+
+  mysql:
+    image: mysql:8.0
+    container_name: tuition_mysql
+    restart: always
+    env_file:
+      - .env
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD:-root_pass}
+      MYSQL_DATABASE: ${DB_NAME:-TuitionDB}
+      MYSQL_USER: ${DB_USER:-sa}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-12345}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./core/db.sql:/docker-entrypoint-initdb.d/db.sql
+    command: --default-authentication-plugin=mysql_native_password --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  mysql_data:
