@@ -132,3 +132,9 @@ const response = await fetch(`${API_BASE_URL}/tuition`, {
   }
 });
 ```
+
+# Mailler
+
+- Muốn chạy mailler phải tạo 1 file credentials_desktop_apps.json ở thư mục góc, dán license API email vào
+- Chạy file hashh.py để cấp quyền -> ròi mới chayjddc mailler
+- Mailler hiện tại chỉ nhận đích, Title, content
