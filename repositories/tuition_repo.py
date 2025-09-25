@@ -96,21 +96,41 @@ class tuitionRepository:
         self.db.execute(query, {"transaction_id": transaction_id})
 
     def create_payment_otp(self, transaction_id: str, otp_code: str, expires_at: datetime):
-        self.delete_existing_otps(transaction_id)
+        try:
+            self.delete_existing_otps(transaction_id)
+            query = text(
+                """
+                INSERT INTO payment_otp (idTransaction, otp_code)
+                VALUES (:transaction_id, :otp_code)
+                """
+            )
+            self.db.execute(query, {
+                "transaction_id": transaction_id,
+                "otp_code": otp_code,
+            })
+            self.db.commit()
+            return True, None
+        except Exception as e:
+            self.db.rollback()
+            return False, str(e)
+
+        
+    def get_otp_to_verify(self, transaction_id: str):
         query = text(
             """
-            INSERT INTO payment_otp (idTransaction, otp_code, expires_at)
-            VALUES (:transaction_id, :otp_code, :expires_at)
+            SELECT otp_code
+            FROM payment_otp
+            WHERE idTransaction = :transaction_id
+            LIMIT 1
             """
         )
-        self.db.execute(
+        
+        return self.db.execute(
             query,
             {
                 "transaction_id": transaction_id,
-                "otp_code": otp_code,
-                "expires_at": expires_at,
             },
-        )
+        ).mappings().first()
 
     def get_latest_otp(self, transaction_id: str):
         query = text(

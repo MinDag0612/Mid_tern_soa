@@ -65,8 +65,6 @@ CREATE TABLE payment_otp (
     id INT AUTO_INCREMENT PRIMARY KEY,
     idTransaction VARCHAR(20) NOT NULL,
     otp_code VARCHAR(10) NOT NULL,
-    expires_at DATETIME NOT NULL,
-    verified_at DATETIME NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
     CONSTRAINT FK_PaymentOtp_Tuition FOREIGN KEY (idTransaction) REFERENCES tuition(idTransaction) ON DELETE CASCADE,
     INDEX idx_payment_otp_transaction (idTransaction)

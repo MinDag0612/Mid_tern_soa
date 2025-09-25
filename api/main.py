@@ -25,7 +25,7 @@ jwt_services = jwt_services()
 
 app.include_router(account_router, prefix="/accounts", tags=["account"])
 app.include_router(tuition_router, prefix="/tuition", tags=["tuition"], dependencies=[Depends(jwt_services.get_current_user)])
-app.include_router(otp_router, prefix="/otp", tags=["otp"], dependencies=[Depends(jwt_services.get_current_user)])
+app.include_router(otp_router, prefix="/otp", tags=["otp"])
 app.include_router(payment_router, prefix="/payment", tags=["payment"], dependencies=[Depends(jwt_services.get_current_user)])
 app.include_router(mailler_router, prefix="/mailler", tags=["mailler"])
 

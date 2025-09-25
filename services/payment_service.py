@@ -16,33 +16,33 @@ class PaymentService:
         with self.tuition_repo.db.begin():
             tuition = self.tuition_repo.lock_tuition_by_transaction(transaction_id)
             if not tuition:
-                return {"message": "Cannot find tuition information for this transaction"}
+                return {"message": "Cannot find tuition information for this transaction"}, 400
 
             if tuition["is_paid"]:
-                return {"message": "This tuition has already been completed"}
+                return {"message": "This tuition has already been completed"}, 400
 
             otp_record = self.tuition_repo.get_latest_otp(transaction_id)
             if not otp_record:
-                return {"message": "OTP has not been generated for this transaction"}
+                return {"message": "OTP has not been generated for this transaction"}, 400
 
             if otp_record["verified_at"] is not None:
-                return {"message": "This OTP was already used"}
+                return {"message": "This OTP was already used"}, 400
 
             if otp_record["expires_at"] < now:
-                return {"message": "OTP has expired"}
+                return {"message": "OTP has expired"}, 400
 
             if otp_record["otp_code"] != otp_code:
-                return {"message": "Invalid OTP"}
+                return {"message": "Invalid OTP"}, 400
 
             customer = self.account_repo.lock_customer_for_update(customer_id)
             if not customer:
-                return {"message": "Cannot find customer information"}
+                return {"message": "Cannot find customer information"}, 400
 
             tuition_amount = Decimal(tuition["tuition"])
             current_balance = Decimal(customer["balance"])
 
             if current_balance < tuition_amount:
-                return {"message": "Balance is not enough to cover this tuition"}
+                return {"message": "Balance is not enough to cover this tuition"}, 400
 
             new_balance = current_balance - tuition_amount
 
@@ -66,4 +66,5 @@ class PaymentService:
             "tuition": float(tuition_amount),
             "balance_after": float(new_balance),
             "message": "Tuition payment completed successfully",
-        }
+        }, 200
+

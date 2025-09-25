@@ -18,6 +18,10 @@ class TuitionInfor(BaseModel):
 class TuitionOtpRequest(BaseModel):
     transaction_id: str
     customer_id: int
+    
+class TuitionOtpVerify(BaseModel):
+    transaction_id: str
+    otp_input: str
 
 
 class TuitionPaymentRequest(BaseModel):
