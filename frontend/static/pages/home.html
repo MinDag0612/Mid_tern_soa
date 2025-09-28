@@ -3,14 +3,149 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Trang chủ</title>
+    <title>Dashboard Học phí</title>
     <link rel="stylesheet" href="/static/styles/base.css" />
+    <link rel="stylesheet" href="/static/styles/Homepage.css" />
 </head>
-<body>
-    <main class="page">
-        <section class="card">
-            <h1>Trang chủ</h1>
-        </section>
-    </main>
+<body class="homepage-body">
+    <div class="sidebar">
+        <h2>Menu</h2>
+        <a href="#" class="menu-link active" data-section="hocphi">Học phí</a>
+        <a href="#" class="menu-link" data-section="thanhtoan">Thanh toán</a>
+        <a href="#" class="menu-link" data-section="huongdan">Hướng dẫn</a>
+        <a href="#" class="menu-link" data-section="profile">Hồ sơ</a>
+    </div>
+
+    <div class="main">
+        <header>
+            <div class="logo">
+                <img src="/static/assets/logo.jpg" alt="Logo" />
+                <div>
+                    <span>HỆ THỐNG THANH TOÁN HỌC PHÍ</span>
+                    <p class="tagline">Quản lý và theo dõi các khoản đóng học phí</p>
+                </div>
+            </div>
+            <div class="profile">
+                <button class="profile-btn" id="profile-button" type="button">Tài khoản ▾</button>
+                <div class="dropdown" id="dropdownMenu">
+                    <div class="dropdown__infor">
+                        <p><strong id="dropdown-name">—</strong></p>
+                        <p id="dropdown-email">—</p>
+                        <p id="dropdown-customer">Mã KH: —</p>
+                        <p id="dropdown-student">MSSV: —</p>
+                    </div>
+                    <button id="logout" type="button" class="dropdown__action">Đăng xuất</button>
+                </div>
+            </div>
+        </header>
+
+        <div class="content" id="hocphi">
+            <h3>Học phí | Tuition</h3>
+            <form id="lookup-form" class="card">
+                <label class="field">
+                    <span>Mã số sinh viên</span>
+                    <input id="student-id" name="studentId" placeholder="VD: ST003" required />
+                </label>
+                <button type="submit">Tra cứu học phí</button>
+            </form>
+
+            <div id="tuition-empty" class="card empty-state">Chưa có dữ liệu. Vui lòng nhập MSSV và tra cứu.</div>
+
+            <div id="tuition-table-wrapper" class="card table-card hidden">
+                <h4 class="card-title">Thông tin giao dịch</h4>
+                <table id="tuition-table">
+                    <thead>
+                        <tr>
+                            <th>Mã giao dịch</th>
+                            <th>Sinh viên</th>
+                            <th>Số tiền</th>
+                            <th>Trạng thái</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="content content-wide hidden" id="thanhtoan">
+            <h3>Thanh toán | Payment</h3>
+            <section class="card">
+                <h4>Yêu cầu OTP cho giao dịch</h4>
+                <form id="otp-form" class="form-grid">
+                    <label class="field">
+                        <span>Mã giao dịch</span>
+                        <input id="otp-transaction" name="transaction_id" placeholder="VD: TXN003" required />
+                    </label>
+                    <button type="submit">Gửi OTP</button>
+                </form>
+                <p class="note">Nhấn "Sao chép" trong bảng học phí để điền nhanh mã giao dịch.</p>
+            </section>
+
+            <section class="card">
+                <h4>Xác nhận thanh toán</h4>
+                <form id="payment-form" class="form-grid">
+                    <label class="field">
+                        <span>Mã giao dịch</span>
+                        <input id="payment-transaction" name="transaction_id" placeholder="VD: TXN003" required />
+                    </label>
+                    <label class="field">
+                        <span>Mã OTP</span>
+                        <input id="payment-otp" name="otp_code" maxlength="6" pattern="\d{6}" placeholder="6 chữ số" required />
+                    </label>
+                    <button type="submit">Xác nhận thanh toán</button>
+                </form>
+                <p class="note">OTP chỉ hiệu lực trong 5 phút kể từ khi yêu cầu. Sau khi thanh toán thành công, số dư tài khoản sẽ được cập nhật.</p>
+            </section>
+        </div>
+
+        <div class="content hidden" id="huongdan">
+            <h3>Hướng dẫn thanh toán</h3>
+            <section class="card guide">
+                <ol>
+                    <li>Đăng nhập bằng tài khoản được cấp.</li>
+                    <li>Vào mục <strong>Học phí</strong>, nhập MSSV để tra cứu các khoản chưa thanh toán.</li>
+                    <li>Nhấn <strong>Sao chép</strong> tại giao dịch cần thanh toán và yêu cầu OTP trong mục <strong>Thanh toán</strong>.</li>
+                    <li>Nhập mã OTP vào mục <strong>Thanh toán</strong> và xác nhận.</li>
+                    <li>Kiểm tra lại trạng thái giao dịch trong bảng học phí sau khi thanh toán.</li>
+                </ol>
+                <p class="note">Nếu cần hỗ trợ thêm vui lòng liên hệ phòng Công tác sinh viên.</p>
+            </section>
+        </div>
+
+        <div class="content hidden" id="profile">
+            <h3>Hồ sơ cá nhân</h3>
+            <section class="card profile-card">
+                <div class="info-row">
+                    <span>Họ tên</span>
+                    <strong id="profile-name">—</strong>
+                </div>
+                <div class="info-row">
+                    <span>Email</span>
+                    <strong id="profile-email">—</strong>
+                </div>
+                <div class="info-row">
+                    <span>Mã khách hàng</span>
+                    <strong id="profile-id">—</strong>
+                </div>
+                <div class="info-row">
+                    <span>MSSV</span>
+                    <strong id="profile-student">—</strong>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <template id="tuition-row-template">
+        <tr>
+            <td data-cell="transaction"></td>
+            <td data-cell="student"></td>
+            <td data-cell="amount"></td>
+            <td data-cell="status"></td>
+        </tr>
+    </template>
+
+    <div id="toast" class="toast hidden" role="status"></div>
+
+    <script src="/static/scripts/homepage.js" type="module"></script>
 </body>
 </html>
