@@ -10,3 +10,12 @@ flow = InstalledAppFlow.from_client_secrets_file('credentials_desktop_apps.json'
 creds = flow.run_local_server(port=0)   # sẽ mở trình duyệt trên máy host
 with open('token.json', 'w') as token:
     token.write(creds.to_json())
+
+# from pwdlib import PasswordHash
+
+# # Khởi tạo context khuyên dùng (argon2 nếu có, fallback bcrypt)
+# context_pwd = PasswordHash.recommended()
+
+# # Hash password
+# hashed = context_pwd.hash("admin123")
+# print(hashed)

@@ -10,6 +10,10 @@ from schemas.tuition_schema import TuitionPaymentRequest
 payment_router = APIRouter()
 db_conn = connDB()
 
+@payment_router.get("/")
+def test():
+    return "Payment router works"
+
 
 def _get_service(db: Session) -> PaymentService:
     tuition_repo = tuitionRepository(db)

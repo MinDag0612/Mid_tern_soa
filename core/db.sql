@@ -72,9 +72,9 @@ CREATE TABLE payment_otp (
 
 -- Dữ liệu mẫu
 INSERT INTO account (id, userName, password) VALUES
-    (1, 'admin', '$2b$12$ByWI/aiBcz5.ojnuAKJ.ueuwT1MPL2X5vd5Klx5yDsRkk0.PoX1dS'),
-    (2, 'student01', '$2b$12$J0/ryTNcS0btK0uRkTj0f.zASkMVRWRnxytSQ01BGBqoxz.M3aTDq'),
-    (3, 'student02', '$2b$12$CQaG1mDCWWwMJ2bAS1gBBub8wA8G1ARqlMRy2oGcuWQzypI6JapBG');
+    (1, 'admin', '$argon2id$v=19$m=65536,t=3,p=4$c/Ymj4DqrZdIbEfk9PGrMg$Py0BxZ0tIO8d+PaiF5kQBX15IWfTqI4+vAhc4E9nfpo'),
+    (2, 'student01', '$argon2id$v=19$m=65536,t=3,p=4$GkcEhlywxisXiQ/ISYqw8A$WtBSuIzraRFpw1bpK2C3EZ6/Rpe0190JOY5gcR/ya/0'),
+    (3, 'student02', '$argon2id$v=19$m=65536,t=3,p=4$pycZecLhHB/gA4sBjMlPNA$MImdvw5rVt1zCiBJrurjQKpRJW7NGNkDX+xnNx9olPg');
 
 INSERT INTO CustomerInfor (id, fullName, phoneNumber, email, balance) VALUES
     (1, 'Nguyen Van A', '0901234567', 'a@example.com', 5000000),
