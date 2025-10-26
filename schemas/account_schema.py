@@ -6,5 +6,5 @@ class Infor(BaseModel):
     email: str
 
 class LoginRequest(BaseModel):
-    user_name: str
+    username: str
     password: str
