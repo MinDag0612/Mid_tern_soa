@@ -40,3 +40,5 @@ class AccountRepository:
             "UPDATE CustomerInfor SET balance = :balance WHERE id = :customer_id"
         )
         self.db.execute(query, {"balance": balance, "customer_id": customer_id})
+        
+        

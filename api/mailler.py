@@ -75,6 +75,7 @@ def test():
 
 @mailler_router.post("/send-mail")
 def send_mail(mail: mail):
+    # return mail.recipient
     sended_mail = send_email_v1(mail.recipient, mail.subject, mail.content)
     if (sended_mail):
         return {"message": f"Mail --{mail.subject}-- was send"}

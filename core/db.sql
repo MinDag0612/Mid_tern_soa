@@ -79,7 +79,7 @@ INSERT INTO account (id, userName, password) VALUES
 INSERT INTO CustomerInfor (id, fullName, phoneNumber, email, balance) VALUES
     (1, 'Nguyen Van A', '0901234567', 'a@example.com', 5000000),
     (2, 'Tran Thi B',   '0912345678', 'b@example.com', 3000000),
-    (3, 'Le Van C',     '0923456789', 'c@example.com', 4500000);
+    (3, 'Le Van C',     '0923456789', 'tonminhdang9@gmail.com', 4500000);
 
 INSERT INTO tuition (id, idTransaction, studentId, studentName, tuition, is_paid, paid_at) VALUES
     (1, 'TXN001', 'ST001', 'Nguyen Van A', 1500000, 1, NOW()),

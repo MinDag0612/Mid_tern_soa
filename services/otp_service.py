@@ -7,6 +7,7 @@ import os
 
 from repositories.tuition_repo import tuitionRepository
 from repositories.account_repo import AccountRepository
+from services.jwt_service import jwt_services
 
 class OtpService:
     def __init__(self, tuition_repo: tuitionRepository, account_repo: AccountRepository):
@@ -52,7 +53,14 @@ class OtpService:
             "content": content
         }
         
-        response = requests.post(url_mailler, json=body)
+        jwt_token = jwt_services().get_token({"sub": customer['email']})
+        
+        headers = {
+            "Authorization": f"Bearer {jwt_token}",   # ✅ thêm JWT token vào header
+            "Content-Type": "application/json"        # (tuỳ chọn, giúp service đọc JSON)
+        }
+                
+        response = requests.post(url_mailler, json=body, headers=headers)
         
         try:
             mailer_msg = response.json()
