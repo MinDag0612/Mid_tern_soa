@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends
+from fastapi.responses import JSONResponse
 from sqlalchemy.orm import Session
 from core.connDB import connDB
 from services.otp_service import OtpService
@@ -25,9 +26,17 @@ def test():
 @otp_router.post("/request-otp")
 def request_otp(payload: TuitionOtpRequest, db: Session = Depends(db_conn.get_db)):
     service = _get_service(db)
-    return service.request_payment_otp(payload.transaction_id, payload.customer_id)
+    result = service.request_payment_otp(payload.transaction_id, payload.customer_id)
+    if isinstance(result, tuple) and len(result) == 2:
+        body, status = result
+        return JSONResponse(content=body, status_code=status)
+    return result
 
 @otp_router.post("/verify-otp")
 def verify_otp_api(verify_infor: TuitionOtpVerify, db: Session = Depends(db_conn.get_db)):
     service = _get_service(db)
-    return service.verify_otp(verify_infor.transaction_id, verify_infor.otp_input)
+    result = service.verify_otp(verify_infor.transaction_id, verify_infor.otp_input)
+    if isinstance(result, tuple) and len(result) == 2:
+        body, status = result
+        return JSONResponse(content=body, status_code=status)
+    return result

@@ -7,7 +7,7 @@ class TuitionService:
         self.tuition_repo = tuition_repo
 
     def getTuitionByStudentId(self, student_id: str):
-        tuition_records = self.tuition_repo.get_unpaid_tuitions_by_student(student_id)
+        tuition_records = self.tuition_repo.get_tuitions_by_student(student_id)
         if not tuition_records:
-            return {"message": "All tuition were complete or don't have any tuition for this student"}
+            return {"message": "Không tìm thấy học phí cho sinh viên này."}
         return [TuitionInfor(**record).model_dump() for record in tuition_records]
