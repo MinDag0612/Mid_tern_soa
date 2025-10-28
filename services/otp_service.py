@@ -1,13 +1,10 @@
 from datetime import datetime, timedelta
 import secrets
 
-import random
-import requests
-import os
-
 from repositories.tuition_repo import tuitionRepository
 from repositories.account_repo import AccountRepository
 from services.jwt_service import jwt_services
+from api.mailler import send_email_v1
 
 class OtpService:
     def __init__(self, tuition_repo: tuitionRepository, account_repo: AccountRepository):
@@ -45,7 +42,12 @@ class OtpService:
         Thanks !!
         '''
 
-        url_mailler = f"http://{os.getenv('APP_HOST', '127.0.0.1')}:{os.getenv('APP_PORT', '8000')}/mailler/send-mail"
+        mail_sent = send_email_v1(recipient, subject, content)
+
+        if not mail_sent:
+            return {
+                "message": "Không thể gửi email OTP. Vui lòng thử lại sau."
+            }, 500
 
         body = {
             "recipient": recipient,
@@ -71,9 +73,8 @@ class OtpService:
             "transaction_id": transaction_id,
             "studentId": tuition["studentId"],
             "tuition": float(tuition["tuition"]),
-            "otp": otp_code,
             "expires_at": expires_at.isoformat(),
-            "message": f"{response.status_code} - {mailer_msg} - DB: {err}",
+            "message": "OTP đã được gửi qua email.",
         }, 200
         
     def verify_otp(self, transaction_id: str, otp_input: str):

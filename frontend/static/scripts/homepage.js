@@ -127,22 +127,18 @@ logoutButton?.addEventListener('click', () => {
 const profileNameEl = document.getElementById('profile-name');
 const profileEmailEl = document.getElementById('profile-email');
 const profileIdEl = document.getElementById('profile-id');
-const profileStudentEl = document.getElementById('profile-student');
 const dropdownNameEl = document.getElementById('dropdown-name');
 const dropdownEmailEl = document.getElementById('dropdown-email');
 const dropdownCustomerEl = document.getElementById('dropdown-customer');
-const dropdownStudentEl = document.getElementById('dropdown-student');
 
 const populateProfile = () => {
   const { fullName, email, id } = userInfor ?? {};
   profileNameEl.textContent = fullName ?? '—';
   profileEmailEl.textContent = email ?? '—';
   profileIdEl.textContent = id ?? '—';
-  profileStudentEl.textContent = '—';
   dropdownNameEl.textContent = fullName ?? '—';
   dropdownEmailEl.textContent = email ?? '—';
   dropdownCustomerEl.textContent = `Mã KH: ${id ?? '—'}`;
-  dropdownStudentEl.textContent = 'MSSV: —';
 };
 
 populateProfile();
@@ -319,15 +315,20 @@ const renderTuitionRows = (records) => {
 
 const updateStudentInfo = (records) => {
   const firstRecord = Array.isArray(records) ? records[0] : null;
-  if (firstRecord?.studentId) {
-    dropdownStudentEl.textContent = `MSSV: ${firstRecord.studentId}`;
-    profileStudentEl.textContent = firstRecord.studentId;
+  if (!firstRecord?.studentId) {
+    try {
+      localStorage.removeItem('homepage_last_student');
+    } catch (error) {
+      console.warn('Không thể xóa MSSV cuối cùng đã tra cứu', error);
+    }
     return;
   }
-  dropdownStudentEl.textContent = 'MSSV: —';
-  profileStudentEl.textContent = '—';
+  try {
+    localStorage.setItem('homepage_last_student', firstRecord.studentId);
+  } catch (error) {
+    console.warn('Không thể lưu MSSV cuối cùng đã tra cứu', error);
+  }
 };
-
 const fetchTuition = async (studentId) => {
   currentStudentId = studentId;
   try {
@@ -442,7 +443,7 @@ const requestOtp = async (transactionId) => {
       throw new Error(result?.message ?? 'Không thể gửi OTP.');
     }
 
-    showToast('Đã gửi OTP tới email của bạn.', 'success');
+    showToast(result?.message ?? 'Đã gửi OTP tới email của bạn.', 'success');
   } catch (error) {
     console.error('request otp error', error);
     showToast(error.message, 'error');

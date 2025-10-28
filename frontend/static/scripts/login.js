@@ -61,6 +61,10 @@ form?.addEventListener('submit', async (event) => {
 
   const formData = new FormData(form);
   const payload = Object.fromEntries(formData.entries());
+  const payloadToSend = {
+    username: payload.user_name ?? payload.username ?? '',
+    password: payload.password ?? '',
+  };
 
   try {
     const response = await fetch(`${API_BASE_URL}/accounts/login`, {
@@ -68,7 +72,7 @@ form?.addEventListener('submit', async (event) => {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(payload),
+      body: JSON.stringify(payloadToSend),
     });
 
     const result = await response.json().catch(() => null);

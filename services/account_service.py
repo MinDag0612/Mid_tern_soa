@@ -7,13 +7,15 @@ from jose import JWTError, jwt
 from fastapi import Depends, HTTPException, status
 from services.jwt_service import jwt_services
 from pwdlib import PasswordHash
-from pwdlib.hashers import bcrypt
+from pwdlib.hashers import bcrypt, argon2
 
 class AccountService:
     def __init__(self, repo: AccountRepository):
         self.repo = repo
         # self.context_pwd = CryptContext(schemes=["bcrypt"], deprecated="auto", bcrypt__ident="2b")
-        self.context_pwd = PasswordHash.recommended()
+        
+        # Support legacy bcrypt hashes and future argon2 hashes
+        self.context_pwd = PasswordHash((argon2.Argon2Hasher(), bcrypt.BcryptHasher()))
         
 
     def login(self, user_name: str, password: str):

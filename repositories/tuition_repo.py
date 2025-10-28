@@ -7,15 +7,18 @@ class tuitionRepository:
         self.db = db
 
     def get_tuition_infor_by_studentId(self, studentId: str):
-        records = self.get_unpaid_tuitions_by_student(studentId)
+        records = self.get_tuitions_by_student(studentId)
+        for record in records:
+            if not record["is_paid"]:
+                return record
         return records[0] if records else None
 
-    def get_unpaid_tuitions_by_student(self, student_id: str):
+    def get_tuitions_by_student(self, student_id: str):
         query = text(
             """
             SELECT id, idTransaction, studentId, studentName, tuition, is_paid, paid_at
             FROM tuition
-            WHERE studentId = :student_id AND is_paid = 0
+            WHERE studentId = :student_id
             ORDER BY created_at ASC
             """
         )
@@ -100,13 +103,14 @@ class tuitionRepository:
             self.delete_existing_otps(transaction_id)
             query = text(
                 """
-                INSERT INTO payment_otp (idTransaction, otp_code)
-                VALUES (:transaction_id, :otp_code)
+                INSERT INTO payment_otp (idTransaction, otp_code, expires_at)
+                VALUES (:transaction_id, :otp_code, :expires_at)
                 """
             )
             self.db.execute(query, {
                 "transaction_id": transaction_id,
                 "otp_code": otp_code,
+                "expires_at": expires_at,
             })
             self.db.commit()
             return True, None
