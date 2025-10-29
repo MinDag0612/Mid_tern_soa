@@ -21,6 +21,8 @@ if (!userInfor) {
       id: fallbackId,
       fullName: localStorage.getItem('customer_fullname') ?? '',
       email: localStorage.getItem('customer_email') ?? '',
+      phoneNumber: localStorage.getItem('customer_phone') ?? '',
+      balance: localStorage.getItem('customer_balance'),
     };
   }
 }
@@ -32,6 +34,13 @@ if (userInfor && typeof userInfor.id === 'string') {
   }
 }
 
+if (userInfor && userInfor.balance !== undefined && userInfor.balance !== null) {
+  const numericBalance = Number.parseFloat(userInfor.balance);
+  if (!Number.isNaN(numericBalance)) {
+    userInfor.balance = numericBalance;
+  }
+}
+
 const hasValidSession = Boolean(token) && userInfor && userInfor.id !== undefined && userInfor.id !== null && `${userInfor.id}` !== '';
 if (!hasValidSession) {
   localStorage.removeItem('access_token');
@@ -39,6 +48,8 @@ if (!hasValidSession) {
   localStorage.removeItem('customer_id');
   localStorage.removeItem('customer_fullname');
   localStorage.removeItem('customer_email');
+  localStorage.removeItem('customer_phone');
+  localStorage.removeItem('customer_balance');
   window.location.replace('/');
 }
 
@@ -121,21 +132,37 @@ logoutButton?.addEventListener('click', () => {
   localStorage.removeItem('customer_id');
   localStorage.removeItem('customer_fullname');
   localStorage.removeItem('customer_email');
+  localStorage.removeItem('customer_phone');
+  localStorage.removeItem('customer_balance');
   window.location.href = '/';
 });
 
 const profileNameEl = document.getElementById('profile-name');
 const profileEmailEl = document.getElementById('profile-email');
+const profilePhoneEl = document.getElementById('profile-phone');
 const profileIdEl = document.getElementById('profile-id');
+const profileBalanceEl = document.getElementById('profile-balance');
 const dropdownNameEl = document.getElementById('dropdown-name');
 const dropdownEmailEl = document.getElementById('dropdown-email');
 const dropdownCustomerEl = document.getElementById('dropdown-customer');
 
+const formatCurrency = (value) =>
+  new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(value ?? 0));
+
 const populateProfile = () => {
-  const { fullName, email, id } = userInfor ?? {};
+  const { fullName, email, phoneNumber, id, balance } = userInfor ?? {};
   profileNameEl.textContent = fullName ?? '—';
   profileEmailEl.textContent = email ?? '—';
+  if (profilePhoneEl) {
+    profilePhoneEl.textContent = phoneNumber ?? '—';
+  }
   profileIdEl.textContent = id ?? '—';
+  if (profileBalanceEl) {
+    profileBalanceEl.textContent =
+      balance !== undefined && balance !== null && !Number.isNaN(Number(balance))
+        ? formatCurrency(balance)
+        : '—';
+  }
   dropdownNameEl.textContent = fullName ?? '—';
   dropdownEmailEl.textContent = email ?? '—';
   dropdownCustomerEl.textContent = `Mã KH: ${id ?? '—'}`;
@@ -155,8 +182,13 @@ const paymentForm = document.getElementById('payment-form');
 const otpTransactionInput = document.getElementById('otp-transaction');
 const paymentTransactionInput = document.getElementById('payment-transaction');
 const paymentOtpInput = document.getElementById('payment-otp');
+const historyTableBody = document.querySelector('#history-table tbody');
+const historyTableFullBody = document.querySelector('#history-table-full tbody');
 
 let currentStudentId = '';
+let paymentHistoryCache = [];
+let lastHistoryFetchedAt = 0;
+const HISTORY_CACHE_TTL_MS = 2 * 60 * 1000; // 2 minutes
 
 const readTuitionCache = () => {
   const raw = localStorage.getItem(TUITION_CACHE_KEY);
@@ -228,9 +260,6 @@ const removeTuitionCache = (studentId) => {
   delete cache[studentId];
   writeTuitionCache(cache);
 };
-
-const formatCurrency = (value) =>
-  new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(Number(value ?? 0));
 
 const copyToClipboard = async (value) => {
   if (!value) {
@@ -311,6 +340,96 @@ const renderTuitionRows = (records) => {
 
     tuitionTableBody.appendChild(row);
   });
+};
+
+const renderHistoryRows = (records, targetBody) => {
+  if (!targetBody) {
+    return;
+  }
+  targetBody.innerHTML = '';
+  if (!Array.isArray(records) || records.length === 0) {
+    const emptyRow = document.createElement('tr');
+    const cell = document.createElement('td');
+    cell.colSpan = 4;
+    cell.className = 'empty-state';
+    cell.textContent = 'Chưa có giao dịch nào.';
+    emptyRow.appendChild(cell);
+    targetBody.appendChild(emptyRow);
+    return;
+  }
+
+  records.forEach((item) => {
+    const row = document.createElement('tr');
+    const paidAt = item.paid_at ? new Date(item.paid_at) : null;
+
+    const transactionTd = document.createElement('td');
+    transactionTd.textContent = item.transaction_id;
+    row.appendChild(transactionTd);
+
+    const studentTd = document.createElement('td');
+    const amountTd = document.createElement('td');
+    amountTd.textContent = formatCurrency(item.tuition);
+    row.appendChild(amountTd);
+
+    const timeTd = document.createElement('td');
+    timeTd.textContent = paidAt
+      ? paidAt.toLocaleString('vi-VN', {
+          hour: '2-digit',
+          minute: '2-digit',
+          hour12: false,
+          day: '2-digit',
+          month: '2-digit',
+          year: 'numeric',
+        })
+      : '—';
+    row.appendChild(timeTd);
+
+    const payerTd = document.createElement('td');
+    payerTd.textContent = item.payer ?? '—';
+    row.appendChild(payerTd);
+
+    targetBody.appendChild(row);
+  });
+};
+
+const refreshHistoryViews = () => {
+  if (historyTableBody) {
+    renderHistoryRows(paymentHistoryCache.slice(0, 20), historyTableBody);
+  }
+  if (historyTableFullBody) {
+    renderHistoryRows(paymentHistoryCache, historyTableFullBody);
+  }
+};
+
+const fetchPaymentHistory = async (force = false) => {
+  if (!userInfor?.id) {
+    return;
+  }
+  const now = Date.now();
+  if (!force && now - lastHistoryFetchedAt < HISTORY_CACHE_TTL_MS && paymentHistoryCache.length) {
+    refreshHistoryViews();
+    return;
+  }
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/payment/history?customer_id=${userInfor.id}&limit=50`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    );
+    const result = await response.json().catch(() => null);
+    if (!response.ok) {
+      throw new Error(result?.message ?? 'Không thể tải lịch sử giao dịch.');
+    }
+    paymentHistoryCache = Array.isArray(result) ? result : [];
+    lastHistoryFetchedAt = now;
+    refreshHistoryViews();
+  } catch (error) {
+    console.error('fetch history error', error);
+    showToast(error.message ?? 'Không thể tải lịch sử giao dịch.', 'error');
+  }
 };
 
 const updateStudentInfo = (records) => {
@@ -426,6 +545,9 @@ lookupForm?.addEventListener('submit', (event) => {
 });
 
 hydrateTuitionFromCache(initialSection);
+if (initialSection === 'thanhtoan' || initialSection === 'lichsu') {
+  fetchPaymentHistory(true);
+}
 
 const requestOtp = async (transactionId) => {
   try {
@@ -498,6 +620,7 @@ paymentForm?.addEventListener('submit', async (event) => {
     if (currentStudentId) {
       fetchTuition(currentStudentId);
     }
+    fetchPaymentHistory(true);
   } catch (error) {
     console.error('payment error', error);
     showToast(error.message, 'error');
@@ -508,3 +631,11 @@ paymentForm?.addEventListener('submit', async (event) => {
 if (initialSection === 'hocphi') {
   studentIdInput?.focus();
 }
+
+menuLinks.forEach((link) => {
+  link.addEventListener('click', () => {
+    if (link.dataset.section === 'thanhtoan' || link.dataset.section === 'lichsu') {
+      fetchPaymentHistory();
+    }
+  });
+});

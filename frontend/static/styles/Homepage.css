@@ -200,6 +200,26 @@ header .tagline {
     width: 100%;
 }
 
+#history-table th,
+#history-table td,
+#history-table-full th,
+#history-table-full td {
+    text-align: center;
+    padding: 12px 10px;
+    white-space: nowrap;
+}
+
+#history-table tbody tr:nth-child(even),
+#history-table-full tbody tr:nth-child(even) {
+    background: #f8fbff;
+}
+
+#history-table tbody tr td:first-child,
+#history-table-full tbody tr td:first-child {
+    font-weight: 600;
+    color: #1d4ed8;
+}
+
 #tuition-table {
     width: 100%;
     border-collapse: collapse;

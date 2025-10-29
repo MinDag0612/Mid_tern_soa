@@ -33,6 +33,8 @@ const clearSession = () => {
   localStorage.removeItem('customer_id');
   localStorage.removeItem('customer_fullname');
   localStorage.removeItem('customer_email');
+  localStorage.removeItem('customer_phone');
+  localStorage.removeItem('customer_balance');
 };
 
 const persistSession = (result) => {
@@ -51,6 +53,12 @@ const persistSession = (result) => {
   }
   if (infor?.email !== undefined) {
     localStorage.setItem('customer_email', infor.email ?? '');
+  }
+  if (infor?.phoneNumber !== undefined) {
+    localStorage.setItem('customer_phone', infor.phoneNumber ?? '');
+  }
+  if (infor?.balance !== undefined && infor.balance !== null) {
+    localStorage.setItem('customer_balance', String(infor.balance));
   }
 };
 

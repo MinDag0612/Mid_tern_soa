@@ -3,7 +3,6 @@ import secrets
 
 from repositories.tuition_repo import tuitionRepository
 from repositories.account_repo import AccountRepository
-from services.jwt_service import jwt_services
 from api.mailler import send_email_v1
 
 class OtpService:
@@ -12,7 +11,8 @@ class OtpService:
         self.account_repo = account_repo
 
     def request_payment_otp(self, transaction_id: str, customer_id: int):
-        tuition = self.tuition_repo.get_tuition_by_transaction(transaction_id)
+        now = datetime.utcnow()
+        tuition = self.tuition_repo.lock_tuition_by_transaction(transaction_id)
         if not tuition:
             return {"message": "Cannot find tuition information for this transaction"}, 400
 
@@ -26,12 +26,45 @@ class OtpService:
         if customer['balance'] < tuition['tuition']:
             return {"message": "Customer balance can not pay tuition now !!"}, 400
 
-        otp_code = f"{secrets.randbelow(1_000_000):06d}"
-        expires_at = datetime.now() + timedelta(minutes=5)
+        active_otp = self.tuition_repo.get_active_otp(transaction_id, now)
+        if (
+            active_otp
+            and active_otp.get("requested_by") is not None
+            and active_otp["requested_by"] != customer_id
+            and active_otp.get("expires_at") > now
+        ):
+            self.tuition_repo.insert_otp_audit(
+                transaction_id,
+                customer_id,
+                customer.get("email"),
+                "REJECTED",
+                "Another account is already processing this transaction.",
+            )
+            self.tuition_repo.db.commit()
+            return {
+                "message": "Giao dịch này đang được tài khoản khác xử lý. Vui lòng thử lại sau vài phút."
+            }, 409
 
-        query_status, err = self.tuition_repo.create_payment_otp(transaction_id, otp_code, expires_at)
+        otp_code = f"{secrets.randbelow(1_000_000):06d}"
+        expires_at = now + timedelta(minutes=5)
+
+        query_status, err = self.tuition_repo.create_payment_otp(
+            transaction_id,
+            otp_code,
+            expires_at,
+            customer_id,
+            now,
+        )
         
         if (not query_status):
+            self.tuition_repo.insert_otp_audit(
+                transaction_id,
+                customer_id,
+                customer.get("email"),
+                "FAILED",
+                f"Database error: {err}",
+            )
+            self.tuition_repo.db.commit()
             return {"message": f"Cannot query OTP. {err}"}, 400
         
         recipient = customer['email']
@@ -45,30 +78,27 @@ class OtpService:
         mail_sent = send_email_v1(recipient, subject, content)
 
         if not mail_sent:
+            self.tuition_repo.insert_otp_audit(
+                transaction_id,
+                customer_id,
+                recipient,
+                "FAILED",
+                "Mail service could not send OTP.",
+            )
+            self.tuition_repo.db.commit()
             return {
                 "message": "Không thể gửi email OTP. Vui lòng thử lại sau."
             }, 500
 
-        body = {
-            "recipient": recipient,
-            "subject": subject,
-            "content": content
-        }
-        
-        jwt_token = jwt_services().get_token({"sub": customer['email']})
-        
-        headers = {
-            "Authorization": f"Bearer {jwt_token}",   # ✅ thêm JWT token vào header
-            "Content-Type": "application/json"        # (tuỳ chọn, giúp service đọc JSON)
-        }
-                
-        response = requests.post(url_mailler, json=body, headers=headers)
-        
-        try:
-            mailer_msg = response.json()
-        except ValueError:
-            mailer_msg = response.text  # khi không phải JSON
-        
+        self.tuition_repo.insert_otp_audit(
+            transaction_id,
+            customer_id,
+            recipient,
+            "SENT",
+            None,
+        )
+        self.tuition_repo.db.commit()
+
         return {
             "transaction_id": transaction_id,
             "studentId": tuition["studentId"],

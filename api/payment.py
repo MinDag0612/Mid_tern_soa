@@ -29,3 +29,12 @@ def confirm_payment(payload: TuitionPaymentRequest, db: Session = Depends(db_con
         payload.customer_id,
         payload.otp_code,
     )
+
+@payment_router.get("/history")
+def get_payment_history(
+    customer_id: int,
+    limit: int | None = None,
+    db: Session = Depends(db_conn.get_db),
+):
+    service = _get_service(db)
+    return service.get_history(customer_id, limit)

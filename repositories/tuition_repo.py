@@ -98,27 +98,55 @@ class tuitionRepository:
         query = text("DELETE FROM payment_otp WHERE idTransaction = :transaction_id")
         self.db.execute(query, {"transaction_id": transaction_id})
 
-    def create_payment_otp(self, transaction_id: str, otp_code: str, expires_at: datetime):
+    def create_payment_otp(
+        self,
+        transaction_id: str,
+        otp_code: str,
+        expires_at: datetime,
+        requested_by: int | None,
+        requested_at: datetime,
+    ):
         try:
             self.delete_existing_otps(transaction_id)
             query = text(
                 """
-                INSERT INTO payment_otp (idTransaction, otp_code, expires_at)
-                VALUES (:transaction_id, :otp_code, :expires_at)
+                INSERT INTO payment_otp (idTransaction, otp_code, expires_at, requested_by, requested_at)
+                VALUES (:transaction_id, :otp_code, :expires_at, :requested_by, :requested_at)
                 """
             )
-            self.db.execute(query, {
-                "transaction_id": transaction_id,
-                "otp_code": otp_code,
-                "expires_at": expires_at,
-            })
+            self.db.execute(
+                query,
+                {
+                    "transaction_id": transaction_id,
+                    "otp_code": otp_code,
+                    "expires_at": expires_at,
+                    "requested_by": requested_by,
+                    "requested_at": requested_at,
+                },
+            )
             self.db.commit()
             return True, None
         except Exception as e:
             self.db.rollback()
             return False, str(e)
 
-        
+    def get_active_otp(self, transaction_id: str, current_time: datetime):
+        query = text(
+            """
+            SELECT id, idTransaction, otp_code, expires_at, verified_at, requested_by, requested_at
+            FROM payment_otp
+            WHERE idTransaction = :transaction_id
+              AND verified_at IS NULL
+              AND expires_at > :current_time
+            ORDER BY created_at DESC
+            LIMIT 1
+            """
+        )
+        return self.db.execute(
+            query,
+            {"transaction_id": transaction_id, "current_time": current_time},
+        ).mappings().first()
+
     def get_otp_to_verify(self, transaction_id: str):
         query = text(
             """
@@ -139,7 +167,7 @@ class tuitionRepository:
     def get_latest_otp(self, transaction_id: str):
         query = text(
             """
-            SELECT id, idTransaction, otp_code, expires_at, verified_at, created_at
+            SELECT id, idTransaction, otp_code, expires_at, verified_at, created_at, requested_by
             FROM payment_otp
             WHERE idTransaction = :transaction_id
             ORDER BY created_at DESC
@@ -153,3 +181,60 @@ class tuitionRepository:
             "UPDATE payment_otp SET verified_at = :verified_at WHERE id = :otp_id"
         )
         self.db.execute(query, {"verified_at": verified_at, "otp_id": otp_id})
+
+    def insert_otp_audit(
+        self,
+        transaction_id: str,
+        customer_id: int | None,
+        email: str | None,
+        status: str,
+        detail: str | None,
+    ):
+        query = text(
+            """
+            INSERT INTO otp_audit (idTransaction, customer_id, email, status, detail)
+            VALUES (:transaction_id, :customer_id, :email, :status, :detail)
+            """
+        )
+        self.db.execute(
+            query,
+            {
+                "transaction_id": transaction_id,
+                "customer_id": customer_id,
+                "email": email,
+                "status": status,
+                "detail": detail,
+            },
+        )
+
+    def get_payment_history_for_customer(
+        self,
+        customer_id: int,
+        limit: int | None = None,
+    ):
+        limit_clause = ""
+        if limit is not None and limit > 0:
+            limit_clause = "LIMIT :limit"
+
+        query = text(
+            f"""
+            SELECT
+                h.idTransaction AS transaction_id,
+                h.studentId AS student_id,
+                t.studentName AS student_name,
+                h.tuition AS tuition,
+                h.dayComplete AS paid_at,
+                h.payer AS payer,
+                h.email AS email,
+                h.status AS status
+            FROM history h
+            JOIN tuition t ON t.idTransaction = h.idTransaction
+            WHERE h.customer_id = :customer_id
+            ORDER BY h.dayComplete DESC
+            {limit_clause}
+            """
+        )
+        params = {"customer_id": customer_id}
+        if limit_clause:
+            params["limit"] = limit
+        return self.db.execute(query, params).mappings().all()
