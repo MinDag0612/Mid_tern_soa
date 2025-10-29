@@ -18,7 +18,9 @@ class AccountRepository:
         ).mappings().first()
 
     def get_customer_infor(self, customer_id: int):
-        query = text("SELECT id, fullName, email FROM CustomerInfor WHERE id = :customer_id")
+        query = text(
+            "SELECT id, fullName, email, phoneNumber, balance FROM CustomerInfor WHERE id = :customer_id"
+        )
         return self.db.execute(
             query, {"customer_id": customer_id}
         ).mappings().first()

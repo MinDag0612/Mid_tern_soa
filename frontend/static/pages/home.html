@@ -12,8 +12,9 @@
         <h2>Menu</h2>
         <a href="#" class="menu-link active" data-section="hocphi">Học phí</a>
         <a href="#" class="menu-link" data-section="thanhtoan">Thanh toán</a>
-        <a href="#" class="menu-link" data-section="huongdan">Hướng dẫn</a>
+        <a href="#" class="menu-link" data-section="lichsu">Lịch sử</a>
         <a href="#" class="menu-link" data-section="profile">Hồ sơ</a>
+        <a href="#" class="menu-link" data-section="huongdan">Hướng dẫn</a>
     </div>
 
     <div class="main">
@@ -95,6 +96,39 @@
                 </form>
                 <p class="note">OTP chỉ hiệu lực trong 5 phút kể từ khi yêu cầu. Sau khi thanh toán thành công, số dư tài khoản sẽ được cập nhật.</p>
             </section>
+
+            <section class="card table-card" id="history-card">
+                <h4 class="card-title">Lịch sử giao dịch gần đây</h4>
+                <table id="history-table">
+                    <thead>
+                        <tr>
+                            <th>Mã giao dịch</th>
+                            <th>Số tiền</th>
+                            <th>Ngày thanh toán</th>
+                            <th>Người thanh toán</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+                <p class="note">Danh sách hiển thị tối đa 20 giao dịch gần nhất của bạn.</p>
+            </section>
+        </div>
+
+        <div class="content hidden" id="lichsu">
+            <h3>Lịch sử giao dịch</h3>
+            <section class="card table-card">
+                <table id="history-table-full">
+                    <thead>
+                        <tr>
+                            <th>Mã giao dịch</th>
+                            <th>Số tiền</th>
+                            <th>Ngày thanh toán</th>
+                            <th>Người thanh toán</th>
+                        </tr>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </section>
         </div>
 
         <div class="content hidden" id="huongdan">
@@ -123,8 +157,16 @@
                     <strong id="profile-email">—</strong>
                 </div>
                 <div class="info-row">
+                    <span>Số điện thoại</span>
+                    <strong id="profile-phone">—</strong>
+                </div>
+                <div class="info-row">
                     <span>Mã khách hàng</span>
                     <strong id="profile-id">—</strong>
+                </div>
+                <div class="info-row">
+                    <span>Số dư hiện tại</span>
+                    <strong id="profile-balance">—</strong>
                 </div>
             </section>
         </div>
