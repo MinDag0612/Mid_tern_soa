@@ -5,7 +5,7 @@ from fastapi.security import OAuth2PasswordRequestForm, OAuth2PasswordBearer
 from jose import JWTError, jwt
 
 from fastapi import Depends, HTTPException, status
-from services.jwt_service import jwt_services
+from services.jwt_service import jwt_service_instance
 from pwdlib import PasswordHash
 from pwdlib.hashers import bcrypt, argon2
 
@@ -16,6 +16,7 @@ class AccountService:
         
         # Support legacy bcrypt hashes and future argon2 hashes
         self.context_pwd = PasswordHash((argon2.Argon2Hasher(), bcrypt.BcryptHasher()))
+        self.jwt_services = jwt_service_instance
         
 
     def login(self, user_name: str, password: str):
@@ -33,7 +34,10 @@ class AccountService:
             return {"message": "Cannot find infor !!"}
         
         token_data = {"sub": user_name}
-        access_token = jwt_services().get_token(token_data)
+        if (not self.jwt_services.is_token_active(user_name)):
+            access_token = self.jwt_services.get_token(token_data)
+        else:
+            return {"message": "Account already logged in elsewhere !!"}
         
         return {
             "user_infor": Infor(**customer).model_dump(),
