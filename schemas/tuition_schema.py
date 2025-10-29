@@ -28,3 +28,14 @@ class TuitionPaymentRequest(BaseModel):
     transaction_id: str
     customer_id: int
     otp_code: str
+
+
+class PaymentHistoryItem(BaseModel):
+    transaction_id: str
+    student_id: str
+    student_name: str
+    tuition: float
+    paid_at: datetime
+    payer: str
+    email: str | None
+    status: str
