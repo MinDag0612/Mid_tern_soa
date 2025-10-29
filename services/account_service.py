@@ -19,8 +19,8 @@ class AccountService:
         self.jwt_services = jwt_service_instance
         
 
-    def login(self, user_name: str, password: str):
-        account_auth = self.repo.get_pass_by_username(user_name)
+    def login(self, username: str, password: str):
+        account_auth = self.repo.get_pass_by_username(username)
         # return account['password']
         if not account_auth:
             return {"message": "Invalid username or password"}
@@ -28,22 +28,34 @@ class AccountService:
         if not self.context_pwd.verify(password, account_auth['password']):
             return {"message": "Invalid username or password"}
 
-        account = self.repo.get_account_by_username(user_name)
+        account = self.repo.get_account_by_username(username)
         customer = self.repo.get_customer_infor(account["id"])
         if not customer:
             return {"message": "Cannot find infor !!"}
         
-        token_data = {"sub": user_name}
-        if (not self.jwt_services.is_token_active(user_name)):
+        token_data = {"sub": username}
+        if (not self.jwt_services.is_token_active(username)):
             access_token = self.jwt_services.get_token(token_data)
         else:
-            return {"message": "Account already logged in elsewhere !!"}
+            self.remove_token(username)
+            return {"message": "Account already logged in elsewhere !! Login again."}
+        
         
         return {
             "user_infor": Infor(**customer).model_dump(),
             "access_token": access_token
             } 
         
+    def remove_token(self, username: str):
+        """Xóa session cũ của user trong Redis"""
+        self.jwt_services.remove_token(username)
+        
+    def logout(self, username: str):
+        if self.jwt_services.is_token_active(username):
+            self.remove_token(username)
+            return {"message": "Logout successful"}
+        else:
+            return {"message": "User is not logged in"}
         
     
     

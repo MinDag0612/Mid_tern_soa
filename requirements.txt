@@ -14,3 +14,4 @@ google-auth==2.36.0
 google-auth-oauthlib==1.2.1
 pwdlib[argon2,bcrypt]>=0.2.1
 packaging>=23.2
+redis

@@ -24,3 +24,8 @@ def login(request: LoginRequest, db: Session = Depends(db_conn.get_db)):
 def login_form(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(db_conn.get_db)):
     service = AccountService(AccountRepository(db))
     return service.login(form_data.username, form_data.password)
+
+@account_router.post("/logout")
+def logout(username: str, db: Session = Depends(db_conn.get_db)):
+    service = AccountService(AccountRepository(db))
+    return service.logout(username)
