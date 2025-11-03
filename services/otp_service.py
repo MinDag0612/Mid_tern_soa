@@ -46,7 +46,7 @@ class OtpService:
             }, 409
 
         otp_code = f"{secrets.randbelow(1_000_000):06d}"
-        expires_at = now + timedelta(minutes=5)
+        expires_at = now + timedelta(minutes=1)
 
         query_status, err = self.tuition_repo.create_payment_otp(
             transaction_id,
@@ -111,10 +111,14 @@ class OtpService:
         otp_verify = self.tuition_repo.get_otp_to_verify(transaction_id)
         if not otp_verify:
             return {"message": "OTP not found"}, 404
-        if (otp_verify["otp_code"] == otp_input):
+        if otp_verify["otp_code"] == otp_input:
+            if otp_verify.get("verified_at") is not None:
+                return {"message": "OTP was already used"}, 400
+            if otp_verify.get("expires_at") and otp_verify["expires_at"] <= datetime.utcnow():
+                return {"message": "OTP has expired"}, 400
             return {
-                "message": f"{otp_input} is valid !!"
+                "message": f"OTP is valid"
             }, 200
         return {
-            "message": f"{otp_input} is invalid !!"
+            "message": f"OTP is invalid"
         }, 400

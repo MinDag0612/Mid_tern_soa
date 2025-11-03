@@ -53,17 +53,66 @@ if (!hasValidSession) {
   window.location.replace('/');
 }
 
-const toastEl = document.getElementById('toast');
-const showToast = (message, type = 'info') => {
-  if (!toastEl) {
+const popupEl = document.getElementById('popup');
+const popupMessageEl = document.getElementById('popup-message');
+const popupCloseBtn = document.getElementById('popup-close');
+
+let popupTimer = null;
+
+const clearPopupTimer = () => {
+  if (popupTimer) {
+    window.clearTimeout(popupTimer);
+    popupTimer = null;
+  }
+};
+
+const hidePopup = () => {
+  if (!popupEl) {
     return;
   }
-  toastEl.textContent = message;
-  toastEl.className = `toast ${type} show`;
-  setTimeout(() => {
-    toastEl.className = 'toast hidden';
-  }, 3200);
+  clearPopupTimer();
+  popupEl.classList.add('hidden');
+  popupEl.classList.remove('popup--info', 'popup--success', 'popup--error');
+  popupEl.setAttribute('aria-hidden', 'true');
 };
+
+const showToast = (message, type = 'info') => {
+  if (!popupEl || !popupMessageEl) {
+    return;
+  }
+
+  clearPopupTimer();
+  popupMessageEl.textContent = message;
+  popupEl.classList.remove('hidden', 'popup--info', 'popup--success', 'popup--error');
+  popupEl.classList.add(`popup--${type}`);
+  popupEl.setAttribute('aria-hidden', 'false');
+
+  if (type === 'error') {
+    window.setTimeout(() => {
+      popupCloseBtn?.focus();
+    }, 0);
+  } else {
+    popupTimer = window.setTimeout(() => {
+      hidePopup();
+    }, 2600);
+  }
+};
+
+popupCloseBtn?.addEventListener('click', hidePopup);
+popupEl?.addEventListener('click', (event) => {
+  if (event.target === popupEl) {
+    hidePopup();
+  }
+});
+document.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape' && popupEl && !popupEl.classList.contains('hidden')) {
+    hidePopup();
+  }
+});
+
+if (popupEl) {
+  popupEl.setAttribute('aria-hidden', popupEl.classList.contains('hidden') ? 'true' : 'false');
+}
 
 const sections = document.querySelectorAll('.content');
 const menuLinks = document.querySelectorAll('.menu-link');
@@ -551,6 +600,7 @@ if (initialSection === 'thanhtoan' || initialSection === 'lichsu') {
 
 const requestOtp = async (transactionId) => {
   try {
+    showToast('Đang gửi yêu cầu OTP...', 'info');
     const response = await fetch(`${API_BASE_URL}/otp/request-otp`, {
       method: 'POST',
       headers: {
@@ -583,6 +633,28 @@ otpForm?.addEventListener('submit', async (event) => {
   await requestOtp(transactionId);
 });
 
+const verifyOtpBeforePayment = async (transactionId, otpCode) => {
+  const response = await fetch(`${API_BASE_URL}/otp/verify-otp`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
+    },
+    body: JSON.stringify({
+      transaction_id: transactionId,
+      otp_input: otpCode,
+    }),
+  });
+
+  const result = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    throw new Error(result?.message ?? 'OTP không hợp lệ.');
+  }
+
+  return result;
+};
+
 paymentForm?.addEventListener('submit', async (event) => {
   event.preventDefault();
 
@@ -595,6 +667,13 @@ paymentForm?.addEventListener('submit', async (event) => {
   }
 
   try {
+    try {
+      await verifyOtpBeforePayment(transactionId, otpCode);
+    } catch (otpError) {
+      showToast(otpError.message, 'error');
+      return;
+    }
+
     const response = await fetch(`${API_BASE_URL}/payment/pay`, {
       method: 'POST',
       headers: {
@@ -639,4 +718,3 @@ menuLinks.forEach((link) => {
     }
   });
 });
-

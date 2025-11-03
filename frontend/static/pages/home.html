@@ -181,7 +181,12 @@
         </tr>
     </template>
 
-    <div id="toast" class="toast hidden" role="status"></div>
+    <div id="popup" class="popup hidden" role="alertdialog" aria-modal="true" aria-live="assertive">
+        <div class="popup__content">
+            <p id="popup-message">—</p>
+            <button type="button" id="popup-close" class="popup__action">Đóng</button>
+        </div>
+    </div>
 
     <script src="/static/scripts/homepage.js" type="module"></script>
 </body>

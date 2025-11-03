@@ -150,9 +150,10 @@ class tuitionRepository:
     def get_otp_to_verify(self, transaction_id: str):
         query = text(
             """
-            SELECT otp_code
+            SELECT otp_code, expires_at, verified_at
             FROM payment_otp
             WHERE idTransaction = :transaction_id
+            ORDER BY created_at DESC
             LIMIT 1
             """
         )
