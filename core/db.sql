@@ -65,9 +65,30 @@ CREATE TABLE payment_otp (
     id INT AUTO_INCREMENT PRIMARY KEY,
     idTransaction VARCHAR(20) NOT NULL,
     otp_code VARCHAR(10) NOT NULL,
+    requested_by INT NULL,
+    requested_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    verified_at DATETIME NULL,
     created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT FK_PaymentOtp_Tuition FOREIGN KEY (idTransaction) REFERENCES tuition(idTransaction) ON DELETE CASCADE,
+    expires_at DATETIME NOT NULL,
+    CONSTRAINT FK_PaymentOtp_Tuition FOREIGN KEY (idTransaction)
+        REFERENCES tuition(idTransaction) ON DELETE CASCADE,
+    CONSTRAINT FK_PaymentOtp_Customer FOREIGN KEY (requested_by)
+        REFERENCES CustomerInfor(id) ON DELETE SET NULL,
     INDEX idx_payment_otp_transaction (idTransaction)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE otp_audit (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    idTransaction VARCHAR(20) NOT NULL,
+    customer_id INT NULL,
+    email VARCHAR(50) NULL,
+    status VARCHAR(20) NOT NULL,
+    detail TEXT NULL,
+    created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT FK_OtpAudit_Tuition FOREIGN KEY (idTransaction)
+        REFERENCES tuition(idTransaction) ON DELETE CASCADE,
+    CONSTRAINT FK_OtpAudit_Customer FOREIGN KEY (customer_id)
+        REFERENCES CustomerInfor(id) ON DELETE SET NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- Dữ liệu mẫu

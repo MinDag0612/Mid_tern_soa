@@ -11,7 +11,7 @@ class OtpService:
         self.account_repo = account_repo
 
     def request_payment_otp(self, transaction_id: str, customer_id: int):
-        now = datetime.utcnow()
+        now = datetime.now()
         tuition = self.tuition_repo.lock_tuition_by_transaction(transaction_id)
         if not tuition:
             return {"message": "Cannot find tuition information for this transaction"}, 400
