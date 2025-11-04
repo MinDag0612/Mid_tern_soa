@@ -532,7 +532,7 @@ const renderEmptyState = (message) => {
 
 const renderTuitionRows = (records) => {
   if (!Array.isArray(records) || records.length === 0) {
-    renderEmptyState('Không còn khoản học phí nào cần thanh toán.');
+    renderEmptyState('No pending tuition payments found.');
     return;
   }
 
@@ -555,7 +555,7 @@ const renderTuitionRows = (records) => {
     const copyButton = document.createElement('button');
     copyButton.type = 'button';
     copyButton.className = 'copy-btn';
-    copyButton.textContent = 'Sao chép';
+    copyButton.textContent = 'Copy';
     copyButton.addEventListener('click', async () => {
       // if (otpTransactionInput) {
       //   otpTransactionInput.value = record.idTransaction;
@@ -566,7 +566,7 @@ const renderTuitionRows = (records) => {
       try {
         await copyToClipboard(record.idTransaction);
         const originalText = copyButton.textContent;
-        copyButton.textContent = 'Đã sao chép';
+        copyButton.textContent = 'Copied';
         copyButton.classList.add('copied');
         copyButton.disabled = true;
         setTimeout(() => {
@@ -576,7 +576,7 @@ const renderTuitionRows = (records) => {
         }, 1500);
       } catch (error) {
         console.error('copy transaction error', error);
-        showToast('Không thể sao chép mã. Vui lòng thử lại.', 'error');
+        showToast('Unable to copy the code. Please try again.', 'error');
       }
     });
     transactionCell.appendChild(copyButton);
@@ -586,7 +586,7 @@ const renderTuitionRows = (records) => {
 
     const statusBadge = document.createElement('span');
     statusBadge.className = `badge ${record.is_paid ? 'success' : 'warning'}`;
-    statusBadge.textContent = record.is_paid ? 'Đã thanh toán' : 'Chưa thanh toán';
+    statusBadge.textContent = record.is_paid ? 'Paid' : 'Pending';
     row.querySelector('[data-cell="status"]').appendChild(statusBadge);
 
     tuitionTableBody.appendChild(row);
@@ -603,7 +603,7 @@ const renderHistoryRows = (records, targetBody) => {
     const cell = document.createElement('td');
     cell.colSpan = 4;
     cell.className = 'empty-state';
-    cell.textContent = 'Chưa có giao dịch nào.';
+    cell.textContent = 'No transactions available.';
     emptyRow.appendChild(cell);
     targetBody.appendChild(emptyRow);
     return;
@@ -672,14 +672,14 @@ const fetchPaymentHistory = async (force = false) => {
     );
     const result = await response.json().catch(() => null);
     if (!response.ok) {
-      throw new Error(result?.message ?? 'Không thể tải lịch sử giao dịch.');
+      throw new Error(result?.message ?? 'Unable to load payment history.');
     }
     paymentHistoryCache = Array.isArray(result) ? result : [];
     lastHistoryFetchedAt = now;
     refreshHistoryViews();
   } catch (error) {
     console.error('fetch history error', error);
-    showToast(error.message ?? 'Không thể tải lịch sử giao dịch.', 'error');
+    showToast(error.message ?? 'Unable to load payment history.', 'error');
   }
 };
 
@@ -714,7 +714,7 @@ const fetchTuition = async (studentId) => {
     const result = await response.json().catch(() => null);
 
     if (!response.ok) {
-      throw new Error(result?.message ?? 'Không thể tải học phí.');
+      throw new Error(result?.message ?? 'Unable to load tuition data.');
     }
 
     if (Array.isArray(result)) {
@@ -729,7 +729,7 @@ const fetchTuition = async (studentId) => {
       return;
     }
 
-    const message = result?.message ?? 'Không tìm thấy dữ liệu.';
+    const message = result?.message ?? 'No data found.';
     renderEmptyState(message);
     updateStudentInfo(null);
     removeTuitionCache(studentId);
@@ -741,7 +741,7 @@ const fetchTuition = async (studentId) => {
     showToast(message, 'error');
   } catch (error) {
     console.error('fetch tuition error', error);
-    renderEmptyState('Không thể tải dữ liệu học phí. Vui lòng thử lại.');
+    renderEmptyState('Unable to load tuition data. Please try again.');
     updateStudentInfo(null);
     try {
       localStorage.setItem(STUDENT_ID_STORAGE_KEY, studentId);
@@ -781,7 +781,7 @@ lookupForm?.addEventListener('submit', (event) => {
   event.preventDefault();
   const studentId = studentIdInput.value.trim();
   if (!studentId) {
-    showToast('Vui lòng nhập mã số sinh viên.', 'error');
+    showToast('Please enter a student ID.', 'error');
     return;
   }
   fetchTuition(studentId);
@@ -805,7 +805,7 @@ const requestOtp = async (transactionId) => {
     const result = await response.json().catch(() => null);
 
     if (!response.ok) {
-      throw new Error(result?.message ?? 'Không thể gửi OTP.');
+      throw new Error(result?.message ?? 'Unable to send OTP.');
     }
 
     const tuitionValue = Number(result?.tuition);
@@ -815,7 +815,7 @@ const requestOtp = async (transactionId) => {
       studentId: result?.studentId ?? null,
     });
 
-    showToast(result?.message ?? 'Đã gửi OTP tới email của bạn.', 'success');
+    showToast(result?.message ?? 'OTP has been sent to your email.', 'success');
     return result;
   } catch (error) {
     console.error('request otp error', error);
@@ -828,7 +828,7 @@ otpForm?.addEventListener('submit', async (event) => {
   event.preventDefault();
   const transactionId = otpTransactionInput.value.trim();
   if (!transactionId) {
-    showToast('Vui lòng nhập mã giao dịch để yêu cầu OTP.', 'error');
+    showToast('Please enter a transaction ID to request an OTP.', 'error');
     return;
   }
   paymentTransactionInput.value = transactionId;
@@ -851,18 +851,18 @@ const verifyOtpBeforePayment = async (transactionId, otpCode) => {
   const result = await response.json().catch(() => null);
 
   if (!response.ok) {
-    throw new Error(result?.message ?? 'OTP không hợp lệ.');
+    throw new Error(result?.message ?? 'Invalid OTP.');
   }
 
   return result;
 };
 
 const buildConfirmationMessage = (transactionId, amount) => {
-  const lines = [`Bạn có chắc chắn muốn thanh toán giao dịch ${transactionId}?`];
+  const lines = [`Are you sure you want to pay transaction ${transactionId}?`];
   if (amount !== null && !Number.isNaN(Number(amount))) {
-    lines.push(`Số tiền sẽ bị trừ: ${formatCurrency(amount)}.`);
+    lines.push(`The amount to be charged: ${formatCurrency(amount)}.`);
   }
-  lines.push('Giao dịch sẽ không thể hoàn tác sau khi xác nhận.');
+  lines.push('This action cannot be undone after confirmation.');
   return lines;
 };
 
@@ -876,7 +876,7 @@ paymentForm?.addEventListener('submit', async (event) => {
   const otpCode = paymentOtpInput.value.trim();
 
   if (!transactionId || !otpCode) {
-    showToast('Vui lòng nhập đủ mã giao dịch và OTP.', 'error');
+    showToast('Please provide both the transaction ID and OTP.', 'error');
     return;
   }
 
@@ -913,7 +913,7 @@ async function processPayment(context) {
   closeConfirmDialog();
   if (paymentSubmitBtn) {
     paymentSubmitBtn.disabled = true;
-    paymentSubmitBtn.textContent = 'Đang xử lý...';
+    paymentSubmitBtn.textContent = 'Processing...';
   }
 
   try {
@@ -931,7 +931,7 @@ async function processPayment(context) {
       && !Number.isNaN(currentBalance)
       && currentBalance < amountToPay
     ) {
-      showToast('Số dư của bạn không đủ để thanh toán khoản học phí này.', 'error');
+      showToast('Your balance is not sufficient for this tuition payment.', 'error');
       return;
     }
 
@@ -951,7 +951,7 @@ async function processPayment(context) {
     const result = await response.json().catch(() => null);
 
     if (!response.ok) {
-      throw new Error(result?.message ?? 'Thanh toán thất bại.');
+      throw new Error(result?.message ?? 'Payment failed.');
     }
 
     if (result?.balance_after !== undefined && result.balance_after !== null) {
@@ -972,7 +972,7 @@ async function processPayment(context) {
       otpTransactionInput.value = '';
     }
     await wait(600);
-    showToast(result?.message ?? 'Thanh toán thành công.', 'success');
+    showToast(result?.message ?? 'Payment completed successfully.', 'success');
 
     if (currentStudentId) {
       fetchTuition(currentStudentId);
@@ -980,11 +980,11 @@ async function processPayment(context) {
     fetchPaymentHistory(true);
   } catch (error) {
     console.error('payment error', error);
-    showToast(error.message ?? 'Thanh toán thất bại.', 'error');
+    showToast(error.message ?? 'Payment failed.', 'error');
   } finally {
     if (paymentSubmitBtn) {
       paymentSubmitBtn.disabled = false;
-      paymentSubmitBtn.textContent = originalSubmitText || 'Xác nhận thanh toán';
+      paymentSubmitBtn.textContent = originalSubmitText || 'Confirm payment';
     }
     isProcessingPayment = false;
   }
@@ -998,7 +998,7 @@ confirmAcceptBtn?.addEventListener('click', () => {
   processPayment(pendingPaymentContext);
 });
 
-// Auto focus student ID chỉ khi đang ở tab Học phí
+// Auto focus student ID only when the Tuition tab is active
 if (initialSection === 'hocphi') {
   studentIdInput?.focus();
 }
