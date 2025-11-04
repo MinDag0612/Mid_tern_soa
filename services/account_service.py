@@ -57,5 +57,27 @@ class AccountService:
         else:
             return {"message": "User is not logged in"}
         
+    def get_profile(self, username: str, customer_id: int):
+        account = self.repo.get_account_by_username(username)
+        if not account:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Không tìm thấy tài khoản.",
+            )
+
+        if account["id"] != customer_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Bạn không có quyền truy cập thông tin khách hàng này.",
+            )
+
+        customer = self.repo.get_customer_infor(customer_id)
+        if not customer:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Không tìm thấy thông tin khách hàng.",
+            )
+
+        return Infor(**customer).model_dump()
     
     

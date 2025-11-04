@@ -14,7 +14,6 @@
         <a href="#" class="menu-link" data-section="thanhtoan">Thanh toán</a>
         <a href="#" class="menu-link" data-section="lichsu">Lịch sử</a>
         <a href="#" class="menu-link" data-section="profile">Hồ sơ</a>
-        <a href="#" class="menu-link" data-section="huongdan">Hướng dẫn</a>
     </div>
 
     <div class="main">
@@ -131,20 +130,6 @@
             </section>
         </div>
 
-        <div class="content hidden" id="huongdan">
-            <h3>Hướng dẫn thanh toán</h3>
-            <section class="card guide">
-                <ol>
-                    <li>Đăng nhập bằng tài khoản được cấp.</li>
-                    <li>Vào mục <strong>Học phí</strong>, nhập MSSV để tra cứu các khoản chưa thanh toán.</li>
-                    <li>Nhấn <strong>Sao chép</strong> tại giao dịch cần thanh toán và yêu cầu OTP trong mục <strong>Thanh toán</strong>.</li>
-                    <li>Nhập mã OTP vào mục <strong>Thanh toán</strong> và xác nhận.</li>
-                    <li>Kiểm tra lại trạng thái giao dịch trong bảng học phí sau khi thanh toán.</li>
-                </ol>
-                <p class="note">Nếu cần hỗ trợ thêm vui lòng liên hệ phòng Công tác sinh viên.</p>
-            </section>
-        </div>
-
         <div class="content hidden" id="profile">
             <h3>Hồ sơ cá nhân</h3>
             <section class="card profile-card">
@@ -188,6 +173,24 @@
         </div>
     </div>
 
-    <script src="/static/scripts/homepage.js" type="module"></script>
+    <div
+        id="confirm-dialog"
+        class="modal hidden"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="confirm-title"
+        aria-describedby="confirm-message"
+    >
+        <div class="modal__content">
+            <h4 id="confirm-title">Xác nhận thanh toán</h4>
+            <p id="confirm-message">Bạn có chắc chắn muốn thực hiện giao dịch này?</p>
+            <div class="modal__actions">
+                <button type="button" id="confirm-cancel" class="modal__button modal__button--secondary">Hủy</button>
+                <button type="button" id="confirm-accept" class="modal__button modal__button--primary">Xác nhận</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/scripts/homepage.js?v=20240509" type="module"></script>
 </body>
 </html>

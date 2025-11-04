@@ -56,8 +56,20 @@ if (!hasValidSession) {
 const popupEl = document.getElementById('popup');
 const popupMessageEl = document.getElementById('popup-message');
 const popupCloseBtn = document.getElementById('popup-close');
+const confirmDialogEl = document.getElementById('confirm-dialog');
+const confirmMessageEl = document.getElementById('confirm-message');
+const confirmAcceptBtn = document.getElementById('confirm-accept');
+const confirmCancelBtn = document.getElementById('confirm-cancel');
+
+let pendingPaymentContext = null;
+let isProcessingPayment = false;
 
 let popupTimer = null;
+
+const wait = (ms) =>
+  new Promise((resolve) => {
+    window.setTimeout(resolve, ms);
+  });
 
 const clearPopupTimer = () => {
   if (popupTimer) {
@@ -77,6 +89,9 @@ const hidePopup = () => {
 };
 
 const showToast = (message, type = 'info') => {
+  if (type === 'info') {
+    return;
+  }
   if (!popupEl || !popupMessageEl) {
     return;
   }
@@ -104,14 +119,68 @@ popupEl?.addEventListener('click', (event) => {
     hidePopup();
   }
 });
+
+const closeConfirmDialog = () => {
+  if (!confirmDialogEl) {
+    pendingPaymentContext = null;
+    return;
+  }
+  confirmDialogEl.classList.add('hidden');
+  confirmDialogEl.setAttribute('aria-hidden', 'true');
+  pendingPaymentContext = null;
+  confirmAcceptBtn?.removeAttribute('data-loading');
+  confirmAcceptBtn?.removeAttribute('disabled');
+};
+
+const openConfirmDialog = (message, context) => {
+  if (!confirmDialogEl || !confirmMessageEl) {
+    pendingPaymentContext = null;
+    return;
+  }
+  pendingPaymentContext = context;
+  const lines = Array.isArray(message) ? message : [message];
+  confirmMessageEl.replaceChildren();
+  lines.forEach((line) => {
+    const span = document.createElement('span');
+    span.className = 'modal__line';
+    span.textContent = line;
+    confirmMessageEl.append(span);
+  });
+  confirmDialogEl.classList.remove('hidden');
+  confirmDialogEl.setAttribute('aria-hidden', 'false');
+  window.setTimeout(() => {
+    confirmAcceptBtn?.focus();
+  }, 0);
+};
+
+confirmCancelBtn?.addEventListener('click', closeConfirmDialog);
+confirmDialogEl?.addEventListener('click', (event) => {
+  if (event.target === confirmDialogEl) {
+    closeConfirmDialog();
+  }
+});
+
 document.addEventListener('keydown', (event) => {
-  if (event.key === 'Escape' && popupEl && !popupEl.classList.contains('hidden')) {
+  if (event.key !== 'Escape') {
+    return;
+  }
+  if (confirmDialogEl && !confirmDialogEl.classList.contains('hidden')) {
+    closeConfirmDialog();
+    return;
+  }
+  if (popupEl && !popupEl.classList.contains('hidden')) {
     hidePopup();
   }
 });
 
 if (popupEl) {
   popupEl.setAttribute('aria-hidden', popupEl.classList.contains('hidden') ? 'true' : 'false');
+}
+if (confirmDialogEl) {
+  confirmDialogEl.setAttribute(
+    'aria-hidden',
+    confirmDialogEl.classList.contains('hidden') ? 'true' : 'false',
+  );
 }
 
 const sections = document.querySelectorAll('.content');
@@ -217,7 +286,85 @@ const populateProfile = () => {
   dropdownCustomerEl.textContent = `Mã KH: ${id ?? '—'}`;
 };
 
+const persistUserSnapshot = () => {
+  if (!userInfor) {
+    return;
+  }
+  try {
+    localStorage.setItem('user_infor', JSON.stringify(userInfor));
+  } catch (error) {
+    console.warn('Không thể lưu user_infor vào localStorage', error);
+  }
+
+  if (userInfor.id !== undefined && userInfor.id !== null) {
+    localStorage.setItem('customer_id', String(userInfor.id));
+  }
+  if (userInfor.fullName !== undefined) {
+    localStorage.setItem('customer_fullname', userInfor.fullName ?? '');
+  }
+  if (userInfor.email !== undefined) {
+    localStorage.setItem('customer_email', userInfor.email ?? '');
+  }
+  if (userInfor.phoneNumber !== undefined) {
+    localStorage.setItem('customer_phone', userInfor.phoneNumber ?? '');
+  }
+  if (
+    userInfor.balance !== undefined
+    && userInfor.balance !== null
+    && !Number.isNaN(Number(userInfor.balance))
+  ) {
+    localStorage.setItem('customer_balance', String(userInfor.balance));
+  }
+};
+
+const applyUserProfile = (data = {}) => {
+  userInfor = { ...(userInfor ?? {}), ...data };
+  persistUserSnapshot();
+  populateProfile();
+};
+
+const updateBalanceDisplay = (newBalance) => {
+  if (newBalance === undefined || newBalance === null) {
+    return;
+  }
+  const numeric = Number(newBalance);
+  if (Number.isNaN(numeric)) {
+    return;
+  }
+  applyUserProfile({ balance: numeric });
+};
+
+const refreshUserProfile = async () => {
+  if (!userInfor?.id) {
+    return;
+  }
+  try {
+    const response = await fetch(`${API_BASE_URL}/accounts/profile/${userInfor.id}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    const result = await response.json().catch(() => null);
+    if (!response.ok) {
+      throw new Error(result?.detail ?? 'Không thể làm mới thông tin tài khoản.');
+    }
+    applyUserProfile({
+      id: result?.id ?? userInfor.id,
+      fullName: result?.fullName ?? userInfor.fullName,
+      email: result?.email ?? userInfor.email,
+      phoneNumber: result?.phoneNumber ?? userInfor.phoneNumber,
+      balance:
+        result?.balance !== undefined && result.balance !== null
+          ? Number(result.balance)
+          : userInfor.balance,
+    });
+  } catch (error) {
+    console.warn('Refresh profile failed', error);
+  }
+};
+
 populateProfile();
+refreshUserProfile();
 
 const lookupForm = document.getElementById('lookup-form');
 const studentIdInput = document.getElementById('student-id');
@@ -228,6 +375,7 @@ const tuitionTemplate = document.getElementById('tuition-row-template');
 
 const otpForm = document.getElementById('otp-form');
 const paymentForm = document.getElementById('payment-form');
+const paymentSubmitBtn = paymentForm?.querySelector('button[type="submit"]');
 const otpTransactionInput = document.getElementById('otp-transaction');
 const paymentTransactionInput = document.getElementById('payment-transaction');
 const paymentOtpInput = document.getElementById('payment-otp');
@@ -237,6 +385,7 @@ const historyTableFullBody = document.querySelector('#history-table-full tbody')
 let currentStudentId = '';
 let paymentHistoryCache = [];
 let lastHistoryFetchedAt = 0;
+const pendingOtpCache = new Map();
 const HISTORY_CACHE_TTL_MS = 2 * 60 * 1000; // 2 minutes
 
 const readTuitionCache = () => {
@@ -261,6 +410,51 @@ const writeTuitionCache = (cache) => {
   } catch (error) {
     console.warn('Không thể lưu cache học phí', error);
   }
+};
+
+const resolveTuitionAmount = (transactionId) => {
+  if (!transactionId) {
+    return null;
+  }
+
+  const pendingEntry = pendingOtpCache.get(transactionId);
+  if (pendingEntry && typeof pendingEntry.tuition === 'number' && !Number.isNaN(pendingEntry.tuition)) {
+    return pendingEntry.tuition;
+  }
+
+  const searchRecords = (records) => {
+    if (!Array.isArray(records)) {
+      return null;
+    }
+    const found = records.find((item) => {
+      if (!item) {
+        return false;
+      }
+      const code =
+        item.idTransaction
+        ?? item.id_transaction
+        ?? item.transaction_id
+        ?? item?.transactionId;
+      return code === transactionId;
+    });
+    if (!found) {
+      return null;
+    }
+    const rawValue = found.tuition ?? found.amount ?? null;
+    const numeric = Number(rawValue);
+    return Number.isNaN(numeric) ? null : numeric;
+  };
+
+  if (currentStudentId) {
+    const cached = getCachedTuition(currentStudentId);
+    const amountFromCache = searchRecords(cached?.records);
+    if (amountFromCache !== null) {
+      return amountFromCache;
+    }
+  }
+
+  const amountFromHistory = searchRecords(paymentHistoryCache);
+  return amountFromHistory;
 };
 
 const getCachedTuition = (studentId) => {
@@ -363,15 +557,23 @@ const renderTuitionRows = (records) => {
     copyButton.className = 'copy-btn';
     copyButton.textContent = 'Sao chép';
     copyButton.addEventListener('click', async () => {
-      if (otpTransactionInput) {
-        otpTransactionInput.value = record.idTransaction;
-      }
-      if (paymentTransactionInput) {
-        paymentTransactionInput.value = record.idTransaction;
-      }
+      // if (otpTransactionInput) {
+      //   otpTransactionInput.value = record.idTransaction;
+      // }
+      // if (paymentTransactionInput) {
+      //   paymentTransactionInput.value = record.idTransaction;
+      // }
       try {
         await copyToClipboard(record.idTransaction);
-        showToast('Đã sao chép mã giao dịch.', 'success');
+        const originalText = copyButton.textContent;
+        copyButton.textContent = 'Đã sao chép';
+        copyButton.classList.add('copied');
+        copyButton.disabled = true;
+        setTimeout(() => {
+          copyButton.textContent = originalText;
+          copyButton.classList.remove('copied');
+          copyButton.disabled = false;
+        }, 1500);
       } catch (error) {
         console.error('copy transaction error', error);
         showToast('Không thể sao chép mã. Vui lòng thử lại.', 'error');
@@ -524,7 +726,6 @@ const fetchTuition = async (studentId) => {
       } catch (storageError) {
         console.warn('Không thể lưu MSSV đã tra cứu', storageError);
       }
-      showToast('Đã tải danh sách học phí.', 'success');
       return;
     }
 
@@ -537,7 +738,7 @@ const fetchTuition = async (studentId) => {
     } catch (storageError) {
       console.warn('Không thể lưu MSSV đã tra cứu', storageError);
     }
-    showToast(message, 'info');
+    showToast(message, 'error');
   } catch (error) {
     console.error('fetch tuition error', error);
     renderEmptyState('Không thể tải dữ liệu học phí. Vui lòng thử lại.');
@@ -574,13 +775,6 @@ const hydrateTuitionFromCache = (activeSection) => {
     return;
   }
 
-  const lastUpdated = new Date(cachedEntry.fetchedAt);
-  if (!Number.isNaN(lastUpdated.getTime())) {
-    const formatted = lastUpdated.toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' });
-    showToast(`Hiển thị dữ liệu lưu lúc ${formatted}.`, 'info');
-  } else {
-    showToast('Đang hiển thị dữ liệu học phí đã lưu gần đây.', 'info');
-  }
 };
 
 lookupForm?.addEventListener('submit', (event) => {
@@ -600,7 +794,6 @@ if (initialSection === 'thanhtoan' || initialSection === 'lichsu') {
 
 const requestOtp = async (transactionId) => {
   try {
-    showToast('Đang gửi yêu cầu OTP...', 'info');
     const response = await fetch(`${API_BASE_URL}/otp/request-otp`, {
       method: 'POST',
       headers: {
@@ -615,10 +808,19 @@ const requestOtp = async (transactionId) => {
       throw new Error(result?.message ?? 'Không thể gửi OTP.');
     }
 
+    const tuitionValue = Number(result?.tuition);
+    pendingOtpCache.set(transactionId, {
+      tuition: Number.isNaN(tuitionValue) ? null : tuitionValue,
+      expiresAt: result?.expires_at ?? null,
+      studentId: result?.studentId ?? null,
+    });
+
     showToast(result?.message ?? 'Đã gửi OTP tới email của bạn.', 'success');
+    return result;
   } catch (error) {
     console.error('request otp error', error);
     showToast(error.message, 'error');
+    return null;
   }
 };
 
@@ -655,8 +857,20 @@ const verifyOtpBeforePayment = async (transactionId, otpCode) => {
   return result;
 };
 
+const buildConfirmationMessage = (transactionId, amount) => {
+  const lines = [`Bạn có chắc chắn muốn thanh toán giao dịch ${transactionId}?`];
+  if (amount !== null && !Number.isNaN(Number(amount))) {
+    lines.push(`Số tiền sẽ bị trừ: ${formatCurrency(amount)}.`);
+  }
+  lines.push('Giao dịch sẽ không thể hoàn tác sau khi xác nhận.');
+  return lines;
+};
+
 paymentForm?.addEventListener('submit', async (event) => {
   event.preventDefault();
+  if (isProcessingPayment) {
+    return;
+  }
 
   const transactionId = paymentTransactionInput.value.trim();
   const otpCode = paymentOtpInput.value.trim();
@@ -667,10 +881,57 @@ paymentForm?.addEventListener('submit', async (event) => {
   }
 
   try {
-    try {
-      await verifyOtpBeforePayment(transactionId, otpCode);
-    } catch (otpError) {
-      showToast(otpError.message, 'error');
+    await verifyOtpBeforePayment(transactionId, otpCode);
+  } catch (otpError) {
+    showToast(otpError.message, 'error');
+    return;
+  }
+
+  const tuitionAmount = resolveTuitionAmount(transactionId);
+  const context = { transactionId, otpCode, tuitionAmount };
+
+  if (!confirmDialogEl || !confirmMessageEl) {
+    processPayment(context);
+    return;
+  }
+
+  openConfirmDialog(buildConfirmationMessage(transactionId, tuitionAmount), context);
+});
+
+async function processPayment(context) {
+  if (!context) {
+    return;
+  }
+  if (isProcessingPayment) {
+    return;
+  }
+
+  const { transactionId, otpCode, tuitionAmount } = context;
+  isProcessingPayment = true;
+  const originalSubmitText = paymentSubmitBtn?.textContent ?? '';
+
+  closeConfirmDialog();
+  if (paymentSubmitBtn) {
+    paymentSubmitBtn.disabled = true;
+    paymentSubmitBtn.textContent = 'Đang xử lý...';
+  }
+
+  try {
+    await refreshUserProfile();
+
+    const amountToPay =
+      tuitionAmount !== undefined && tuitionAmount !== null
+        ? tuitionAmount
+        : resolveTuitionAmount(transactionId);
+
+    const currentBalance = Number(userInfor?.balance);
+    if (
+      amountToPay !== null
+      && amountToPay !== undefined
+      && !Number.isNaN(currentBalance)
+      && currentBalance < amountToPay
+    ) {
+      showToast('Số dư của bạn không đủ để thanh toán khoản học phí này.', 'error');
       return;
     }
 
@@ -693,7 +954,24 @@ paymentForm?.addEventListener('submit', async (event) => {
       throw new Error(result?.message ?? 'Thanh toán thất bại.');
     }
 
-    paymentForm.reset();
+    if (result?.balance_after !== undefined && result.balance_after !== null) {
+      updateBalanceDisplay(result.balance_after);
+    }
+    await refreshUserProfile();
+    pendingOtpCache.delete(transactionId);
+
+    paymentForm?.reset();
+    otpForm?.reset();
+    if (paymentTransactionInput) {
+      paymentTransactionInput.value = '';
+    }
+    if (paymentOtpInput) {
+      paymentOtpInput.value = '';
+    }
+    if (otpTransactionInput) {
+      otpTransactionInput.value = '';
+    }
+    await wait(600);
     showToast(result?.message ?? 'Thanh toán thành công.', 'success');
 
     if (currentStudentId) {
@@ -702,8 +980,22 @@ paymentForm?.addEventListener('submit', async (event) => {
     fetchPaymentHistory(true);
   } catch (error) {
     console.error('payment error', error);
-    showToast(error.message, 'error');
+    showToast(error.message ?? 'Thanh toán thất bại.', 'error');
+  } finally {
+    if (paymentSubmitBtn) {
+      paymentSubmitBtn.disabled = false;
+      paymentSubmitBtn.textContent = originalSubmitText || 'Xác nhận thanh toán';
+    }
+    isProcessingPayment = false;
   }
+}
+
+confirmAcceptBtn?.addEventListener('click', () => {
+  if (!pendingPaymentContext) {
+    closeConfirmDialog();
+    return;
+  }
+  processPayment(pendingPaymentContext);
 });
 
 // Auto focus student ID chỉ khi đang ở tab Học phí

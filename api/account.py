@@ -5,6 +5,7 @@ from repositories.account_repo import AccountRepository
 from services.account_service import AccountService
 from schemas.account_schema import LoginRequest
 from fastapi.security import OAuth2PasswordRequestForm
+from services.jwt_service import jwt_service_instance
 
 account_router = APIRouter()
 db_conn = connDB()
@@ -29,3 +30,12 @@ def login_form(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = D
 def logout(username: str, db: Session = Depends(db_conn.get_db)):
     service = AccountService(AccountRepository(db))
     return service.logout(username)
+
+@account_router.get("/profile/{customer_id}")
+def get_profile(
+    customer_id: int,
+    username: str = Depends(jwt_service_instance.get_current_user),
+    db: Session = Depends(db_conn.get_db),
+):
+    service = AccountService(AccountRepository(db))
+    return service.get_profile(username, customer_id)

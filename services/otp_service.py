@@ -22,9 +22,6 @@ class OtpService:
         customer = self.account_repo.get_customer_with_balance(customer_id)
         if not customer:
             return {"message": "Cannot find customer information"}, 400
-        
-        if customer['balance'] < tuition['tuition']:
-            return {"message": "Customer balance can not pay tuition now !!"}, 400
 
         active_otp = self.tuition_repo.get_active_otp(transaction_id, now)
         if (

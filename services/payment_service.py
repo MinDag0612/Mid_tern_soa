@@ -85,7 +85,14 @@ class PaymentService:
             current_balance = Decimal(customer["balance"])
 
             if current_balance < tuition_amount:
-                return {"message": "Balance is not enough to cover this tuition"}, 400
+                self.tuition_repo.insert_otp_audit(
+                    transaction_id,
+                    customer_id,
+                    customer["email"],
+                    "FAILED",
+                    "Insufficient balance for this tuition payment",
+                )
+                return {"message": "Số dư của bạn không đủ để thanh toán khoản học phí này."}, 400
 
             new_balance = current_balance - tuition_amount
 
